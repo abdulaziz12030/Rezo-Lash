@@ -10,10 +10,7 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <a
-            href="/booking"
-            className="btn-primary"
-          >
+          <a href="/booking" className="btn-primary">
             Book Now
           </a>
         </div>

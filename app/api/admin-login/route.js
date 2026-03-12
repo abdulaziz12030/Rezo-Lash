@@ -13,9 +13,9 @@ export async function POST(request) {
       return NextResponse.json({ error: "Invalid password" }, { status: 401 });
     }
 
-    setAdminSession();
-
-    return NextResponse.json({ success: true });
+    const response = NextResponse.json({ success: true });
+    setAdminSession(response);
+    return response;
   } catch (error) {
     return NextResponse.json(
       { error: error.message || "Login failed" },

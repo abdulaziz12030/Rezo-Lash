@@ -27,6 +27,7 @@ export default function BookingForm() {
     async function loadAvailability() {
       if (!form.date) {
         setBookedSlots([]);
+        setTimeSlots([]);
         return;
       }
 

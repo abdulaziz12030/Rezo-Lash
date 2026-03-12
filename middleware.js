@@ -1,51 +1,37 @@
-import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import crypto from "crypto";
 
 const COOKIE_NAME = "rezo_admin_session";
 
 function signValue(value) {
   const secret = process.env.ADMIN_SESSION_SECRET;
-  if (!secret) {
-    throw new Error("Missing ADMIN_SESSION_SECRET");
-  }
-
+  if (!secret) return null;
   return crypto.createHmac("sha256", secret).update(value).digest("hex");
 }
 
-export function createSessionToken() {
-  const value = "authenticated";
-  const signature = signValue(value);
-  return `${value}.${signature}`;
-}
-
-export function isValidSession(token) {
+function isValidSession(token) {
   if (!token) return false;
-
   const [value, signature] = token.split(".");
   if (!value || !signature) return false;
-
   const expected = signValue(value);
-  return signature === expected && value === "authenticated";
+  return expected && signature === expected && value === "authenticated";
 }
 
-export function setAdminSession() {
-  const token = createSessionToken();
-  cookies().set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/"
-  });
+export function middleware(request) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
+    const token = request.cookies.get(COOKIE_NAME)?.value;
+
+    if (!isValidSession(token)) {
+      const loginUrl = new URL("/admin/login", request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  return NextResponse.next();
 }
 
-export function clearAdminSession() {
-  cookies().set(COOKIE_NAME, "", {
-    httpOnly: true,
-    expires: new Date(0),
-    path: "/"
-  });
-}
-
-export function getAdminSession() {
-  return cookies().get(COOKIE_NAME)?.value;
-}
+export const config = {
+  matcher: ["/admin/:path*"]
+};

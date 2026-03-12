@@ -27,11 +27,7 @@ export default async function AdminSettingsPage() {
         </p>
 
         <form action="/api/settings" method="POST" className="mt-6 space-y-4">
-          <input
-            type="hidden"
-            name="key"
-            value="time_slots"
-          />
+          <input type="hidden" name="key" value="time_slots" />
           <textarea
             name="slots"
             defaultValue={currentSlots.join(",")}
