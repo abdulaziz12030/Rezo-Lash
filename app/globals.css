@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f8f3ed;
+  --foreground: #151515;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.container-luxe {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.card-luxe {
+  @apply rounded-3xl bg-white shadow-luxe border border-black/5;
+}
+
+.input-luxe {
+  @apply w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-gold/40;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-2xl bg-ink px-5 py-3 text-white transition hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed;
+}
+
+.btn-gold {
+  @apply inline-flex items-center justify-center rounded-2xl bg-gold px-5 py-3 text-ink transition hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed;
+}
+
+.section-title {
+  @apply text-3xl md:text-4xl font-semibold tracking-tight;
+}
+
+.badge {
+  @apply inline-flex rounded-full bg-gold/20 px-3 py-1 text-sm font-medium;
+}
