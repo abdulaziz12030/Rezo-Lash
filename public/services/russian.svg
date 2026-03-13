@@ -1,0 +1,20 @@
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="800" height="600" rx="32" fill="#F6EEE7"/>
+<ellipse cx="400" cy="300" rx="240" ry="120" fill="#FFF7F2" stroke="#201A17" stroke-width="10"/>
+<path d="M160 300C215 215 290 168 400 168C510 168 585 215 640 300" stroke="#201A17" stroke-width="10" stroke-linecap="round"/>
+<path d="M180 255L138 160" stroke="#6F482C" stroke-width="12" stroke-linecap="round"/>
+<path d="M210 236L164 150" stroke="#6F482C" stroke-width="12" stroke-linecap="round"/>
+<path d="M245 215L200 128" stroke="#6F482C" stroke-width="12" stroke-linecap="round"/>
+<path d="M285 195L250 110" stroke="#6F482C" stroke-width="12" stroke-linecap="round"/>
+<path d="M330 180L310 96" stroke="#6F482C" stroke-width="12" stroke-linecap="round"/>
+<path d="M375 170L370 85" stroke="#6F482C" stroke-width="12" stroke-linecap="round"/>
+<path d="M425 170L430 85" stroke="#6F482C" stroke-width="12" stroke-linecap="round"/>
+<path d="M470 180L490 96" stroke="#6F482C" stroke-width="12" stroke-linecap="round"/>
+<path d="M515 195L550 110" stroke="#6F482C" stroke-width="12" stroke-linecap="round"/>
+<path d="M555 215L600 128" stroke="#6F482C" stroke-width="12" stroke-linecap="round"/>
+<path d="M590 236L636 150" stroke="#6F482C" stroke-width="12" stroke-linecap="round"/>
+<path d="M620 255L662 160" stroke="#6F482C" stroke-width="12" stroke-linecap="round"/>
+<circle cx="400" cy="300" r="62" fill="#6A4A33"/>
+<circle cx="400" cy="300" r="28" fill="#1B1512"/>
+<text x="400" y="520" text-anchor="middle" font-size="42" font-family="Arial" fill="#201A17">Russian</text>
+</svg>

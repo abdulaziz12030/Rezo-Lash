@@ -135,7 +135,7 @@ export default function BookingForm() {
               >
                 {SERVICES.map((service) => (
                   <option key={service.id} value={service.id}>
-                    {service.name} — {service.price} SAR
+                    {service.arabicName} | {service.name} — {service.price} SAR
                   </option>
                 ))}
               </select>
@@ -209,7 +209,7 @@ export default function BookingForm() {
             Summary
           </p>
           <h3 className="mt-2 text-2xl font-semibold">
-            {selectedService?.name || "Selected Service"}
+            {selectedService?.arabicName || "الخدمة المختارة"}
           </h3>
 
           <div className="mt-6 space-y-4 text-sm">
@@ -223,7 +223,7 @@ export default function BookingForm() {
             </div>
             <div className="flex justify-between border-b border-black/5 pb-3">
               <span className="text-black/55">المدة</span>
-              <span className="font-medium">{selectedService?.duration || 0} min</span>
+              <span className="font-medium">{selectedService?.duration || 0} دقيقة</span>
             </div>
             <div className="flex justify-between">
               <span className="text-black/55">المتبقي في الاستوديو</span>

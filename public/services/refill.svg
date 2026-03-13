@@ -1,0 +1,17 @@
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="800" height="600" rx="32" fill="#F8F0EA"/>
+<ellipse cx="400" cy="300" rx="240" ry="120" fill="#FFF8F3" stroke="#201A17" stroke-width="10"/>
+<path d="M160 300C215 225 290 182 400 182C510 182 585 225 640 300" stroke="#201A17" stroke-width="10" stroke-linecap="round"/>
+<path d="M205 248L175 190" stroke="#9C6B48" stroke-width="10" stroke-linecap="round"/>
+<path d="M255 220L235 160" stroke="#9C6B48" stroke-width="10" stroke-linecap="round"/>
+<path d="M315 198L308 136" stroke="#9C6B48" stroke-width="10" stroke-linecap="round"/>
+<path d="M400 182L400 118" stroke="#9C6B48" stroke-width="10" stroke-linecap="round"/>
+<path d="M485 198L492 136" stroke="#9C6B48" stroke-width="10" stroke-linecap="round"/>
+<path d="M545 220L565 160" stroke="#9C6B48" stroke-width="10" stroke-linecap="round"/>
+<path d="M595 248L625 190" stroke="#9C6B48" stroke-width="10" stroke-linecap="round"/>
+<circle cx="400" cy="300" r="60" fill="#6A4A33"/>
+<circle cx="400" cy="300" r="28" fill="#1B1512"/>
+<path d="M585 145L655 145" stroke="#B68A5A" stroke-width="12" stroke-linecap="round"/>
+<path d="M620 110V180" stroke="#B68A5A" stroke-width="12" stroke-linecap="round"/>
+<text x="400" y="520" text-anchor="middle" font-size="42" font-family="Arial" fill="#201A17">Refill</text>
+</svg>

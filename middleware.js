@@ -1,48 +1,29 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 
 const COOKIE_NAME = "rezo_admin_session";
 
-async function signValue(value) {
+function signValue(value) {
   const secret = process.env.ADMIN_SESSION_SECRET;
   if (!secret) return null;
-
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    encoder.encode(value)
-  );
-
-  return Array.from(new Uint8Array(signature))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  return crypto.createHmac("sha256", secret).update(value).digest("hex");
 }
 
-async function isValidSession(token) {
+function isValidSession(token) {
   if (!token) return false;
-
   const [value, signature] = token.split(".");
   if (!value || !signature) return false;
-
-  const expected = await signValue(value);
-  return Boolean(expected) && signature === expected && value === "authenticated";
+  const expected = signValue(value);
+  return expected && signature === expected && value === "authenticated";
 }
 
-export async function middleware(request) {
+export function middleware(request) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
     const token = request.cookies.get(COOKIE_NAME)?.value;
 
-    if (!(await isValidSession(token))) {
+    if (!isValidSession(token)) {
       const loginUrl = new URL("/admin/login", request.url);
       return NextResponse.redirect(loginUrl);
     }

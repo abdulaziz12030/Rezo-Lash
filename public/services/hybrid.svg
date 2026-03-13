@@ -1,0 +1,17 @@
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="800" height="600" rx="32" fill="#F8F1EB"/>
+<ellipse cx="400" cy="300" rx="240" ry="120" fill="#FFF9F4" stroke="#201A17" stroke-width="10"/>
+<path d="M160 300C215 225 290 182 400 182C510 182 585 225 640 300" stroke="#201A17" stroke-width="10" stroke-linecap="round"/>
+<path d="M195 248L165 190" stroke="#A87349" stroke-width="10" stroke-linecap="round"/>
+<path d="M235 225L210 160" stroke="#A87349" stroke-width="10" stroke-linecap="round"/>
+<path d="M285 205L270 140" stroke="#A87349" stroke-width="12" stroke-linecap="round"/>
+<path d="M340 188L335 120" stroke="#A87349" stroke-width="10" stroke-linecap="round"/>
+<path d="M400 182L400 110" stroke="#A87349" stroke-width="12" stroke-linecap="round"/>
+<path d="M460 188L465 120" stroke="#A87349" stroke-width="10" stroke-linecap="round"/>
+<path d="M515 205L530 140" stroke="#A87349" stroke-width="12" stroke-linecap="round"/>
+<path d="M565 225L590 160" stroke="#A87349" stroke-width="10" stroke-linecap="round"/>
+<path d="M605 248L635 190" stroke="#A87349" stroke-width="10" stroke-linecap="round"/>
+<circle cx="400" cy="300" r="61" fill="#6A4A33"/>
+<circle cx="400" cy="300" r="28" fill="#1B1512"/>
+<text x="400" y="520" text-anchor="middle" font-size="42" font-family="Arial" fill="#201A17">Hybrid</text>
+</svg>

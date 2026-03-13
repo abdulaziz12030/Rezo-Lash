@@ -1,0 +1,19 @@
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="800" height="600" rx="32" fill="#F7EFE8"/>
+<ellipse cx="400" cy="300" rx="240" ry="120" fill="#FFF8F3" stroke="#201A17" stroke-width="10"/>
+<path d="M160 300C215 220 290 175 400 175C510 175 585 220 640 300" stroke="#201A17" stroke-width="10" stroke-linecap="round"/>
+<path d="M185 255L145 175" stroke="#8F5E3B" stroke-width="12" stroke-linecap="round"/>
+<path d="M215 235L175 165" stroke="#8F5E3B" stroke-width="12" stroke-linecap="round"/>
+<path d="M255 210L220 135" stroke="#8F5E3B" stroke-width="12" stroke-linecap="round"/>
+<path d="M300 190L275 115" stroke="#8F5E3B" stroke-width="12" stroke-linecap="round"/>
+<path d="M350 180L340 105" stroke="#8F5E3B" stroke-width="12" stroke-linecap="round"/>
+<path d="M400 175L400 95" stroke="#8F5E3B" stroke-width="12" stroke-linecap="round"/>
+<path d="M450 180L460 105" stroke="#8F5E3B" stroke-width="12" stroke-linecap="round"/>
+<path d="M500 190L525 115" stroke="#8F5E3B" stroke-width="12" stroke-linecap="round"/>
+<path d="M545 210L580 135" stroke="#8F5E3B" stroke-width="12" stroke-linecap="round"/>
+<path d="M585 235L625 165" stroke="#8F5E3B" stroke-width="12" stroke-linecap="round"/>
+<path d="M615 255L655 175" stroke="#8F5E3B" stroke-width="12" stroke-linecap="round"/>
+<circle cx="400" cy="300" r="62" fill="#6A4A33"/>
+<circle cx="400" cy="300" r="28" fill="#1B1512"/>
+<text x="400" y="520" text-anchor="middle" font-size="42" font-family="Arial" fill="#201A17">Volume</text>
+</svg>
