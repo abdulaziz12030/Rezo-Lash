@@ -1,7 +1,6 @@
-
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { calculateBookingTotals, getServiceById, getServiceLabel } from "@/lib/booking";
+import { getServiceById, getServiceLabel } from "@/lib/booking";
 
 export async function PATCH(request, { params }) {
   try {
@@ -45,11 +44,10 @@ export async function PATCH(request, { params }) {
     };
 
     if (nextService) {
-      const totals = calculateBookingTotals(nextService.id, "no-removal", false);
       payload.service_id = nextService.id;
       payload.service_name = getServiceLabel(nextService);
-      if (!body.service_price && body.service_price !== 0) payload.service_price = totals.totalPrice;
-      if (!body.deposit_amount && body.deposit_amount !== 0) payload.deposit_amount = totals.deposit;
+      if (!body.service_price && body.service_price !== 0) payload.service_price = nextService.price;
+      if (!body.deposit_amount && body.deposit_amount !== 0) payload.deposit_amount = nextService.deposit;
     }
 
     const { data: updated, error: updateError } = await supabase

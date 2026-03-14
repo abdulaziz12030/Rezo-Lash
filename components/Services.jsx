@@ -1,5 +1,4 @@
-
-import { SERVICES, getServiceLabel } from "@/lib/booking";
+import { SERVICES, getServiceLabel, getStyleOptions } from "@/lib/booking";
 
 export default function Services() {
   return (
@@ -39,13 +38,23 @@ export default function Services() {
               <p className="mt-3 text-sm leading-7 text-black/70">{service.descriptionAr}</p>
               <p className="mt-2 text-sm font-medium text-black/60">{service.styleSummary}</p>
 
+              <div className="mt-4 rounded-2xl bg-[#faf5ef] p-4 text-sm">
+                <p className="font-semibold text-black/80">الرسومات المناسبة</p>
+                <ul className="mt-2 space-y-1 text-black/60">
+                  {getStyleOptions(service.id).map((style) => (
+                    <li key={style.id}>• {style.label}</li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-black/60">الإزالة: متاحة عند الحاجة أو اختيار لا يتطلب إزالة.</p>
+              </div>
+
               <div className="mt-5 flex items-end justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-black/40">Price</p>
                   <p className="text-2xl font-semibold">{service.price} SAR</p>
                 </div>
-                <a href="#booking" className="btn-primary">
-                  احجزي الآن
+                <a href={`#booking`} className="btn-primary px-4 py-2 text-sm">
+                  احجزي
                 </a>
               </div>
             </div>

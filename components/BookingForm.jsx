@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -7,39 +6,11 @@ import {
   DISPLAY_TIME_SLOTS,
   REMOVAL_OPTIONS,
   SERVICES,
-  calculateBookingTotals,
   getDisplayTime,
   getServiceById,
   getServiceLabel,
   getStyleOptions
 } from "@/lib/booking";
-
-function StyleCards({ options, selectedId, onSelect }) {
-  if (!options.length) return null;
-
-  return (
-    <div>
-      <label className="mb-3 block text-sm font-medium">الرسمة المفضلة</label>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {options.map((style) => (
-          <button
-            key={style.id}
-            type="button"
-            onClick={() => onSelect(style.id)}
-            className={`style-card text-right ${selectedId === style.id ? "style-card-active" : ""}`}
-          >
-            <span className="style-card-icon">{style.title.slice(0, 1)}</span>
-            <span className="block">
-              <strong className="block text-base">{style.title}</strong>
-              <span className="mt-1 block text-sm text-black/55">{style.subtitle}</span>
-              <span className="mt-2 block text-sm leading-6 text-black/70">{style.description}</span>
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function BookingForm() {
   const [form, setForm] = useState({
@@ -48,9 +19,7 @@ export default function BookingForm() {
     date: "",
     serviceId: SERVICES[0].id,
     styleId: getStyleOptions(SERVICES[0].id)[0]?.id || "",
-    removalOption: "no-removal",
-    addLowerLashes: false,
-    acceptedPolicy: false,
+    removalOption: REMOVAL_OPTIONS[1].id,
     time: ""
   });
 
@@ -63,25 +32,12 @@ export default function BookingForm() {
 
   const selectedService = useMemo(() => getServiceById(form.serviceId), [form.serviceId]);
   const styleOptions = useMemo(() => getStyleOptions(form.serviceId), [form.serviceId]);
-  const totals = useMemo(
-    () => calculateBookingTotals(form.serviceId, form.removalOption, form.addLowerLashes),
-    [form.serviceId, form.removalOption, form.addLowerLashes]
-  );
 
   useEffect(() => {
     if (!styleOptions.find((item) => item.id === form.styleId)) {
       setForm((prev) => ({ ...prev, styleId: styleOptions[0]?.id || "" }));
     }
   }, [form.styleId, styleOptions]);
-
-  useEffect(() => {
-    if (!selectedService?.allowsRemovalOption && form.removalOption !== "no-removal") {
-      setForm((prev) => ({ ...prev, removalOption: "no-removal" }));
-    }
-    if (!selectedService?.allowsLowerLashes && form.addLowerLashes) {
-      setForm((prev) => ({ ...prev, addLowerLashes: false }));
-    }
-  }, [selectedService, form.removalOption, form.addLowerLashes]);
 
   useEffect(() => {
     async function loadAvailability() {
@@ -125,19 +81,13 @@ export default function BookingForm() {
   }, [form.date]);
 
   function onChange(event) {
-    const { name, value, type, checked } = event.target;
+    const { name, value } = event.target;
     setForm((prev) => {
       if (name === "serviceId") {
         const nextStyles = getStyleOptions(value);
-        return {
-          ...prev,
-          serviceId: value,
-          styleId: nextStyles[0]?.id || "",
-          removalOption: getServiceById(value)?.allowsRemovalOption ? prev.removalOption : "no-removal",
-          addLowerLashes: getServiceById(value)?.allowsLowerLashes ? prev.addLowerLashes : false
-        };
+        return { ...prev, serviceId: value, styleId: nextStyles[0]?.id || "" };
       }
-      return { ...prev, [name]: type === "checkbox" ? checked : value };
+      return { ...prev, [name]: value };
     });
   }
 
@@ -145,18 +95,8 @@ export default function BookingForm() {
     event.preventDefault();
     setError("");
 
-    if (!form.fullName || !form.phone || !form.date || !form.time || !form.serviceId) {
+    if (!form.fullName || !form.phone || !form.date || !form.time || !form.serviceId || !form.styleId || !form.removalOption) {
       setError("يرجى إكمال جميع الحقول.");
-      return;
-    }
-
-    if (styleOptions.length && !form.styleId) {
-      setError("يرجى اختيار الرسمة المناسبة.");
-      return;
-    }
-
-    if (!form.acceptedPolicy) {
-      setError("يرجى الموافقة على سياسة العربون قبل الدفع.");
       return;
     }
 
@@ -210,52 +150,24 @@ export default function BookingForm() {
               </select>
             </div>
 
-            <StyleCards
-              options={styleOptions}
-              selectedId={form.styleId}
-              onSelect={(styleId) => setForm((prev) => ({ ...prev, styleId }))}
-            />
-
-            {selectedService?.allowsRemovalOption ? (
+            <div className="grid gap-5 sm:grid-cols-2">
               <div>
-                <label className="mb-3 block text-sm font-medium">إزالة الرموش القديمة</label>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {REMOVAL_OPTIONS.map((option) => {
-                    const selected = form.removalOption === option.id;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => setForm((prev) => ({ ...prev, removalOption: option.id }))}
-                        className={`mini-option-card text-right ${selected ? "mini-option-card-active" : ""}`}
-                      >
-                        <strong className="block text-base">{option.label}</strong>
-                        <span className="mt-1 block text-sm text-black/60">
-                          {option.id === "needs-removal" ? `+${option.price} SAR و +30 min` : "بدون رسوم إضافية"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <label className="mb-2 block text-sm font-medium">هل تحتاج إزالة؟</label>
+                <select name="removalOption" className="input-luxe" value={form.removalOption} onChange={onChange}>
+                  {REMOVAL_OPTIONS.map((option) => (
+                    <option key={option.id} value={option.id}>{option.label}</option>
+                  ))}
+                </select>
               </div>
-            ) : null}
-
-            {selectedService?.allowsLowerLashes ? (
-              <label className="mini-checkbox-card">
-                <input
-                  type="checkbox"
-                  name="addLowerLashes"
-                  checked={form.addLowerLashes}
-                  onChange={onChange}
-                />
-                <span>
-                  <strong className="block">+ رموش سفلية</strong>
-                  <span className="mt-1 block text-sm text-black/60">
-                    يضاف نصف مبلغ العلوية ({totals.lowerLashesPrice || Math.round((selectedService?.price || 0) / 2)} SAR)
-                  </span>
-                </span>
-              </label>
-            ) : null}
+              <div>
+                <label className="mb-2 block text-sm font-medium">الرسمة المفضلة</label>
+                <select name="styleId" className="input-luxe" value={form.styleId} onChange={onChange}>
+                  {styleOptions.map((style) => (
+                    <option key={style.id} value={style.id}>{style.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             <div>
               <label className="mb-2 block text-sm font-medium">التاريخ</label>
@@ -282,27 +194,11 @@ export default function BookingForm() {
               <p className="mt-3 text-xs text-black/50">Morning: 9:00 AM و 11:00 AM — Evening: 4:00 PM و 6:00 PM و 8:00 PM</p>
             </div>
 
-            <div className="rounded-3xl border border-gold/30 bg-[#fff8ef] px-5 py-4 text-sm leading-7 text-black/75">
-              لا يحق للعميلة المطالبة بالعربون في حال تم إلغاء الموعد أو التأخر أكثر من 20 دقيقة،
-              كما يمكن للعميلة إعادة جدولة الموعد قبل 24 ساعة وبحسب المواعيد المتاحة.
-            </div>
-
-            <label className="flex items-start gap-3 rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm">
-              <input
-                type="checkbox"
-                name="acceptedPolicy"
-                checked={form.acceptedPolicy}
-                onChange={onChange}
-                className="mt-1 h-4 w-4 rounded border-black/20 text-ink"
-              />
-              <span>أوافق على سياسة العربون وشروط الموعد قبل الانتقال للدفع.</span>
-            </label>
-
             {warning ? <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{warning}</div> : null}
             {error ? <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
             <button type="submit" className="btn-primary pulse-soft" disabled={submitting}>
-              {submitting ? "جاري التحويل..." : `ادفعي عربون ${totals.deposit} ريال`}
+              {submitting ? "جاري التحويل..." : `ادفعي عربون ${selectedService?.deposit || 0} ريال`}
             </button>
           </form>
         </div>
@@ -313,51 +209,37 @@ export default function BookingForm() {
 
           <div className="mt-6 space-y-4 text-sm">
             <div className="flex justify-between border-b border-black/5 pb-3">
-              <span className="text-black/55">السعر الأساسي</span>
-              <span className="font-medium">{totals.basePrice} SAR</span>
-            </div>
-            {selectedService?.allowsLowerLashes ? (
-              <div className="flex justify-between border-b border-black/5 pb-3">
-                <span className="text-black/55">رموش سفلية</span>
-                <span className="font-medium">{totals.lowerLashesPrice} SAR</span>
-              </div>
-            ) : null}
-            {selectedService?.allowsRemovalOption ? (
-              <div className="flex justify-between border-b border-black/5 pb-3">
-                <span className="text-black/55">إزالة قديمة</span>
-                <span className="font-medium">{totals.removalPrice} SAR</span>
-              </div>
-            ) : null}
-            <div className="flex justify-between border-b border-black/5 pb-3">
-              <span className="text-black/55">الإجمالي</span>
-              <span className="font-medium">{totals.totalPrice} SAR</span>
+              <span className="text-black/55">السعر الكامل</span>
+              <span className="font-medium">{selectedService?.price || 0} SAR</span>
             </div>
             <div className="flex justify-between border-b border-black/5 pb-3">
-              <span className="text-black/55">العربون (50%)</span>
-              <span className="font-medium">{totals.deposit} SAR</span>
+              <span className="text-black/55">العربون</span>
+              <span className="font-medium">{selectedService?.deposit || 0} SAR</span>
             </div>
             <div className="flex justify-between border-b border-black/5 pb-3">
-              <span className="text-black/55">المدة المتوقعة</span>
-              <span className="font-medium">{totals.totalDuration} min</span>
+              <span className="text-black/55">المدة</span>
+              <span className="font-medium">{selectedService?.duration || 0} min</span>
             </div>
-            {styleOptions.length ? (
-              <div className="flex justify-between border-b border-black/5 pb-3">
-                <span className="text-black/55">نوع الرسمة</span>
-                <span className="font-medium">{styleOptions.find((item) => item.id === form.styleId)?.label || "—"}</span>
-              </div>
-            ) : null}
+            <div className="flex justify-between border-b border-black/5 pb-3">
+              <span className="text-black/55">نوع الرسمة</span>
+              <span className="font-medium">{styleOptions.find((item) => item.id === form.styleId)?.label || "—"}</span>
+            </div>
+            <div className="flex justify-between border-b border-black/5 pb-3">
+              <span className="text-black/55">الإزالة</span>
+              <span className="font-medium">{REMOVAL_OPTIONS.find((item) => item.id === form.removalOption)?.label || "—"}</span>
+            </div>
             <div className="flex justify-between border-b border-black/5 pb-3">
               <span className="text-black/55">الوقت</span>
               <span className="font-medium">{form.time ? DISPLAY_TIME_SLOTS[form.time] || form.time : "—"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-black/55">المتبقي في الاستوديو</span>
-              <span className="font-medium">{totals.remaining} SAR</span>
+              <span className="font-medium">{(selectedService?.price || 0) - (selectedService?.deposit || 0)} SAR</span>
             </div>
           </div>
 
           <div className="mt-8 rounded-3xl bg-ink px-5 py-5 text-white">
-            <p className="text-sm text-white/75">العربون أصبح 50% من إجمالي الخدمة المختارة، ويُضاف نصف مبلغ الخدمة عند اختيار رموش سفلية و 120 ريال عند طلب إزالة قديمة.</p>
+            <p className="text-sm text-white/75">لا يتكرر نفس الموعد في نفس اليوم. يمكن للأدمن تعديل الوقت أو الخدمة أو السعر من لوحة التحكم.</p>
           </div>
         </div>
       </div>

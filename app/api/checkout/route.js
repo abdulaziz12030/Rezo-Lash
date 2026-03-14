@@ -1,9 +1,7 @@
-
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getStripe } from "@/lib/payments";
 import {
-  calculateBookingTotals,
   getDisplayTime,
   getRemovalLabel,
   getServiceById,
@@ -15,24 +13,10 @@ import {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const {
-      fullName,
-      phone,
-      date,
-      time,
-      serviceId,
-      styleId,
-      removalOption = "no-removal",
-      addLowerLashes = false,
-      acceptedPolicy = false
-    } = body;
+    const { fullName, phone, date, time, serviceId, styleId, removalOption } = body;
 
-    if (!fullName || !phone || !date || !time || !serviceId) {
+    if (!fullName || !phone || !date || !time || !serviceId || !styleId || !removalOption) {
       return NextResponse.json({ error: "Missing required booking fields" }, { status: 400 });
-    }
-
-    if (!acceptedPolicy) {
-      return NextResponse.json({ error: "يرجى الموافقة على سياسة العربون قبل الدفع." }, { status: 400 });
     }
 
     if (isPastDateTime(date, time)) {
@@ -44,17 +28,10 @@ export async function POST(request) {
       return NextResponse.json({ error: "Invalid service selected" }, { status: 400 });
     }
 
-    const totals = calculateBookingTotals(serviceId, removalOption, addLowerLashes);
-    const styleLabel = styleId ? getStyleLabel(serviceId, styleId) : "";
-    const removalLabel = service.allowsRemovalOption ? getRemovalLabel(removalOption) : "";
-    const lowerLashesLabel = service.allowsLowerLashes && addLowerLashes ? "+ رموش سفلية" : "";
+    const styleLabel = getStyleLabel(serviceId, styleId);
+    const removalLabel = getRemovalLabel(removalOption);
     const serviceLabel = getServiceLabel(service);
-
-    const detailParts = [serviceLabel];
-    if (styleLabel) detailParts.push(styleLabel);
-    if (removalLabel) detailParts.push(removalLabel);
-    if (lowerLashesLabel) detailParts.push(lowerLashesLabel);
-    const detailedServiceName = detailParts.join(" — ");
+    const detailedServiceName = `${serviceLabel} — ${styleLabel} — ${removalLabel}`;
 
     const supabase = getSupabaseAdmin();
 
@@ -80,8 +57,8 @@ export async function POST(request) {
         booking_time: time,
         service_id: service.id,
         service_name: detailedServiceName,
-        service_price: totals.totalPrice,
-        deposit_amount: totals.deposit,
+        service_price: service.price,
+        deposit_amount: service.deposit,
         status: "pending",
         payment_status: "unpaid"
       })
@@ -101,9 +78,9 @@ export async function POST(request) {
             currency: "sar",
             product_data: {
               name: `${serviceLabel} Deposit`,
-              description: [styleLabel, removalLabel, lowerLashesLabel, date, getDisplayTime(time)].filter(Boolean).join(" | ")
+              description: `${styleLabel} | ${removalLabel} | ${date} | ${getDisplayTime(time)}`
             },
-            unit_amount: totals.deposit * 100
+            unit_amount: service.deposit * 100
           },
           quantity: 1
         }
@@ -113,10 +90,7 @@ export async function POST(request) {
         bookingId: inserted.id,
         serviceLabel,
         styleLabel,
-        removalLabel,
-        lowerLashesLabel,
-        totalPrice: String(totals.totalPrice),
-        depositAmount: String(totals.deposit)
+        removalLabel
       },
       success_url: `${origin}/success`,
       cancel_url: `${origin}/booking`

@@ -1,7 +1,5 @@
-
 "use client";
 
-import { ChevronUp, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { buildWhatsAppUrl } from "@/lib/booking";
 
@@ -25,7 +23,7 @@ export default function FloatingActions() {
         aria-label="WhatsApp"
         className="floating-btn floating-whatsapp"
       >
-        <MessageCircle size={22} />
+        <span>✆</span>
       </a>
 
       <button
@@ -34,7 +32,7 @@ export default function FloatingActions() {
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         className={`floating-btn floating-top ${visible ? "opacity-100 translate-y-0" : "pointer-events-none translate-y-4 opacity-0"}`}
       >
-        <ChevronUp size={22} />
+        ↑
       </button>
     </>
   );

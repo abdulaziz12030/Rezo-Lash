@@ -1,5 +1,3 @@
-
-import { Sparkles } from "lucide-react";
 import { buildWhatsAppUrl } from "@/lib/booking";
 
 const consultationMessage = `مرحبًا Rezo Lash ✨
@@ -22,10 +20,10 @@ export default function Hero() {
             href={buildWhatsAppUrl(consultationMessage)}
             target="_blank"
             rel="noreferrer"
-            className="consult-chip absolute left-4 top-4 flex max-w-[290px] items-center gap-3 rounded-full bg-white/92 px-4 py-3 text-right shadow-lg backdrop-blur md:left-8 md:top-8"
+            className="consult-chip absolute left-4 top-4 flex max-w-[260px] items-center gap-3 rounded-full bg-white/92 px-4 py-3 text-right shadow-lg backdrop-blur md:left-8 md:top-8"
           >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#25D366] text-white shadow-md">
-              <Sparkles size={18} />
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#25D366] text-xl text-white shadow-md">
+              ✆
             </span>
             <span>
               <strong className="block text-sm md:text-base">استشارة مجانية</strong>
