@@ -117,3 +117,6 @@ body {
   color: white;
   font-size: 1.4rem;
 }
+
+
+.floating-whatsapp svg, .consult-chip svg { display:block; }

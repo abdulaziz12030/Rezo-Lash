@@ -1,4 +1,4 @@
-import { SERVICES, getServiceLabel, getStyleOptions } from "@/lib/booking";
+import { REMOVAL_FEE, SERVICE_STYLES, SERVICES, getServiceLabel, serviceSupportsRemoval } from "@/lib/booking";
 
 export default function Services() {
   return (
@@ -39,13 +39,20 @@ export default function Services() {
               <p className="mt-2 text-sm font-medium text-black/60">{service.styleSummary}</p>
 
               <div className="mt-4 rounded-2xl bg-[#faf5ef] p-4 text-sm">
-                <p className="font-semibold text-black/80">الرسومات المناسبة</p>
-                <ul className="mt-2 space-y-1 text-black/60">
-                  {getStyleOptions(service.id).map((style) => (
-                    <li key={style.id}>• {style.label}</li>
+                <p className="font-semibold text-black/80">الرسومات المتاحة</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {SERVICE_STYLES[service.id].map((style) => (
+                    <span key={style.id} className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 text-xs font-medium text-black/75">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gold/20 text-[11px]">{style.icon}</span>
+                      <span>{style.label}</span>
+                    </span>
                   ))}
-                </ul>
-                <p className="mt-3 text-black/60">الإزالة: متاحة عند الحاجة أو اختيار لا يتطلب إزالة.</p>
+                </div>
+                {serviceSupportsRemoval(service.id) ? (
+                  <p className="mt-3 text-black/60">خيار الإزالة متاح عند الحاجة بقيمة إضافية {REMOVAL_FEE} SAR.</p>
+                ) : (
+                  <p className="mt-3 text-black/60">هذه الخدمة لا تتطلب خيار إزالة إضافي.</p>
+                )}
               </div>
 
               <div className="mt-5 flex items-end justify-between">

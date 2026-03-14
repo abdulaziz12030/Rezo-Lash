@@ -5,12 +5,35 @@ import {
   DEFAULT_TIME_SLOTS,
   DISPLAY_TIME_SLOTS,
   REMOVAL_OPTIONS,
+  REMOVAL_FEE,
   SERVICES,
+  getBookingTotal,
   getDisplayTime,
+  getRemainingAmount,
   getServiceById,
   getServiceLabel,
-  getStyleOptions
+  getStyleOptions,
+  serviceSupportsRemoval
 } from "@/lib/booking";
+
+function OptionCard({ active, onClick, icon, title, subtitle, disabled = false }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`rounded-2xl border p-3 text-right transition ${disabled ? "cursor-not-allowed border-black/10 bg-black/5 text-black/30" : active ? "border-gold bg-gold/15 shadow-sm" : "border-black/10 bg-white hover:border-gold/60 hover:-translate-y-0.5"}`}
+    >
+      <div className="flex items-start gap-3">
+        <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${active ? "bg-gold text-ink" : "bg-[#f6efe7] text-black/65"}`}>{icon}</span>
+        <span>
+          <span className="block text-sm font-semibold">{title}</span>
+          {subtitle ? <span className="mt-1 block text-xs leading-5 text-black/55">{subtitle}</span> : null}
+        </span>
+      </div>
+    </button>
+  );
+}
 
 export default function BookingForm() {
   const [form, setForm] = useState({
@@ -19,7 +42,7 @@ export default function BookingForm() {
     date: "",
     serviceId: SERVICES[0].id,
     styleId: getStyleOptions(SERVICES[0].id)[0]?.id || "",
-    removalOption: REMOVAL_OPTIONS[1].id,
+    removalOption: REMOVAL_OPTIONS[0].id,
     time: ""
   });
 
@@ -32,12 +55,21 @@ export default function BookingForm() {
 
   const selectedService = useMemo(() => getServiceById(form.serviceId), [form.serviceId]);
   const styleOptions = useMemo(() => getStyleOptions(form.serviceId), [form.serviceId]);
+  const canRemove = useMemo(() => serviceSupportsRemoval(form.serviceId), [form.serviceId]);
+  const totalPrice = useMemo(() => getBookingTotal(selectedService, form.removalOption), [selectedService, form.removalOption]);
+  const remaining = useMemo(() => getRemainingAmount(selectedService, form.removalOption), [selectedService, form.removalOption]);
 
   useEffect(() => {
     if (!styleOptions.find((item) => item.id === form.styleId)) {
       setForm((prev) => ({ ...prev, styleId: styleOptions[0]?.id || "" }));
     }
   }, [form.styleId, styleOptions]);
+
+  useEffect(() => {
+    if (!canRemove && form.removalOption !== "no-removal") {
+      setForm((prev) => ({ ...prev, removalOption: "no-removal" }));
+    }
+  }, [canRemove, form.removalOption]);
 
   useEffect(() => {
     async function loadAvailability() {
@@ -85,7 +117,7 @@ export default function BookingForm() {
     setForm((prev) => {
       if (name === "serviceId") {
         const nextStyles = getStyleOptions(value);
-        return { ...prev, serviceId: value, styleId: nextStyles[0]?.id || "" };
+        return { ...prev, serviceId: value, styleId: nextStyles[0]?.id || "", removalOption: "no-removal" };
       }
       return { ...prev, [name]: value };
     });
@@ -150,24 +182,39 @@ export default function BookingForm() {
               </select>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium">هل تحتاج إزالة؟</label>
-                <select name="removalOption" className="input-luxe" value={form.removalOption} onChange={onChange}>
-                  {REMOVAL_OPTIONS.map((option) => (
-                    <option key={option.id} value={option.id}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium">الرسمة المفضلة</label>
-                <select name="styleId" className="input-luxe" value={form.styleId} onChange={onChange}>
-                  {styleOptions.map((style) => (
-                    <option key={style.id} value={style.id}>{style.label}</option>
-                  ))}
-                </select>
+            <div>
+              <label className="mb-3 block text-sm font-medium">اختاري الرسمة المفضلة</label>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {styleOptions.map((style) => (
+                  <OptionCard
+                    key={style.id}
+                    active={form.styleId === style.id}
+                    onClick={() => setForm((prev) => ({ ...prev, styleId: style.id }))}
+                    icon={style.icon}
+                    title={style.label}
+                    subtitle={style.description}
+                  />
+                ))}
               </div>
             </div>
+
+            {canRemove ? (
+              <div>
+                <label className="mb-3 block text-sm font-medium">الإزالة</label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {REMOVAL_OPTIONS.map((option, index) => (
+                    <OptionCard
+                      key={option.id}
+                      active={form.removalOption === option.id}
+                      onClick={() => setForm((prev) => ({ ...prev, removalOption: option.id }))}
+                      icon={index === 0 ? "✓" : "＋"}
+                      title={option.id === "needs-removal" ? "يتطلب إزالة الرموش القديمة" : "لا يتطلب إزالة"}
+                      subtitle={option.id === "needs-removal" ? `يضاف ${REMOVAL_FEE} SAR على السعر الكامل` : "مباشرة إلى الخدمة المختارة"}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             <div>
               <label className="mb-2 block text-sm font-medium">التاريخ</label>
@@ -209,8 +256,18 @@ export default function BookingForm() {
 
           <div className="mt-6 space-y-4 text-sm">
             <div className="flex justify-between border-b border-black/5 pb-3">
-              <span className="text-black/55">السعر الكامل</span>
+              <span className="text-black/55">السعر الأساسي</span>
               <span className="font-medium">{selectedService?.price || 0} SAR</span>
+            </div>
+            {canRemove ? (
+              <div className="flex justify-between border-b border-black/5 pb-3">
+                <span className="text-black/55">قيمة الإزالة</span>
+                <span className="font-medium">{form.removalOption === "needs-removal" ? `${REMOVAL_FEE} SAR` : "0 SAR"}</span>
+              </div>
+            ) : null}
+            <div className="flex justify-between border-b border-black/5 pb-3">
+              <span className="text-black/55">السعر بعد الاختيار</span>
+              <span className="font-medium">{totalPrice} SAR</span>
             </div>
             <div className="flex justify-between border-b border-black/5 pb-3">
               <span className="text-black/55">العربون</span>
@@ -224,17 +281,19 @@ export default function BookingForm() {
               <span className="text-black/55">نوع الرسمة</span>
               <span className="font-medium">{styleOptions.find((item) => item.id === form.styleId)?.label || "—"}</span>
             </div>
-            <div className="flex justify-between border-b border-black/5 pb-3">
-              <span className="text-black/55">الإزالة</span>
-              <span className="font-medium">{REMOVAL_OPTIONS.find((item) => item.id === form.removalOption)?.label || "—"}</span>
-            </div>
+            {canRemove ? (
+              <div className="flex justify-between border-b border-black/5 pb-3">
+                <span className="text-black/55">الإزالة</span>
+                <span className="font-medium">{form.removalOption === "needs-removal" ? "يتطلب إزالة" : "لا يتطلب إزالة"}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between border-b border-black/5 pb-3">
               <span className="text-black/55">الوقت</span>
               <span className="font-medium">{form.time ? DISPLAY_TIME_SLOTS[form.time] || form.time : "—"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-black/55">المتبقي في الاستوديو</span>
-              <span className="font-medium">{(selectedService?.price || 0) - (selectedService?.deposit || 0)} SAR</span>
+              <span className="font-medium">{remaining} SAR</span>
             </div>
           </div>
 

@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getStripe } from "@/lib/payments";
 import {
+  getBookingTotal,
   getDisplayTime,
+  getRemovalFee,
   getRemovalLabel,
   getServiceById,
   getServiceLabel,
@@ -31,7 +33,9 @@ export async function POST(request) {
     const styleLabel = getStyleLabel(serviceId, styleId);
     const removalLabel = getRemovalLabel(removalOption);
     const serviceLabel = getServiceLabel(service);
-    const detailedServiceName = `${serviceLabel} — ${styleLabel} — ${removalLabel}`;
+    const removalFee = getRemovalFee(serviceId, removalOption);
+    const finalPrice = getBookingTotal(service, removalOption);
+    const detailedServiceName = `${serviceLabel} — ${styleLabel}${removalFee ? ` — ${removalLabel}` : ""}`;
 
     const supabase = getSupabaseAdmin();
 
@@ -57,7 +61,7 @@ export async function POST(request) {
         booking_time: time,
         service_id: service.id,
         service_name: detailedServiceName,
-        service_price: service.price,
+        service_price: finalPrice,
         deposit_amount: service.deposit,
         status: "pending",
         payment_status: "unpaid"
@@ -78,7 +82,7 @@ export async function POST(request) {
             currency: "sar",
             product_data: {
               name: `${serviceLabel} Deposit`,
-              description: `${styleLabel} | ${removalLabel} | ${date} | ${getDisplayTime(time)}`
+              description: `${styleLabel}${removalFee ? ` | ${removalLabel}` : ""} | ${date} | ${getDisplayTime(time)}`
             },
             unit_amount: service.deposit * 100
           },
@@ -90,7 +94,8 @@ export async function POST(request) {
         bookingId: inserted.id,
         serviceLabel,
         styleLabel,
-        removalLabel
+        removalLabel,
+        finalPrice: String(finalPrice)
       },
       success_url: `${origin}/success`,
       cancel_url: `${origin}/booking`
