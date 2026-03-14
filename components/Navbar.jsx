@@ -1,7 +1,7 @@
 export default function Navbar() {
   return (
     <header className="container-luxe py-5">
-      <div className="flex items-center justify-between rounded-3xl bg-white/92 px-4 py-4 shadow-luxe backdrop-blur sm:px-5">
+      <div className="fade-up flex items-center justify-between rounded-3xl bg-white/92 px-4 py-4 shadow-luxe backdrop-blur sm:px-5">
         <a href="#top" className="flex items-center gap-3">
           <img
             src="/branding/rezo-lash-logo.png"
@@ -25,7 +25,7 @@ export default function Navbar() {
           </a>
         </nav>
 
-        <a href="#booking" className="btn-primary">
+        <a href="#booking" className="btn-primary pulse-soft">
           احجزي الآن
         </a>
       </div>

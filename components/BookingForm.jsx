@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DEFAULT_TIME_SLOTS, SERVICES, getServiceById, getServiceLabel } from "@/lib/booking";
+import {
+  DEFAULT_TIME_SLOTS,
+  DISPLAY_TIME_SLOTS,
+  REMOVAL_OPTIONS,
+  SERVICES,
+  getDisplayTime,
+  getServiceById,
+  getServiceLabel,
+  getStyleOptions
+} from "@/lib/booking";
 
 export default function BookingForm() {
   const [form, setForm] = useState({
@@ -9,6 +18,8 @@ export default function BookingForm() {
     phone: "",
     date: "",
     serviceId: SERVICES[0].id,
+    styleId: getStyleOptions(SERVICES[0].id)[0]?.id || "",
+    removalOption: REMOVAL_OPTIONS[1].id,
     time: ""
   });
 
@@ -19,10 +30,14 @@ export default function BookingForm() {
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
 
-  const selectedService = useMemo(
-    () => getServiceById(form.serviceId),
-    [form.serviceId]
-  );
+  const selectedService = useMemo(() => getServiceById(form.serviceId), [form.serviceId]);
+  const styleOptions = useMemo(() => getStyleOptions(form.serviceId), [form.serviceId]);
+
+  useEffect(() => {
+    if (!styleOptions.find((item) => item.id === form.styleId)) {
+      setForm((prev) => ({ ...prev, styleId: styleOptions[0]?.id || "" }));
+    }
+  }, [form.styleId, styleOptions]);
 
   useEffect(() => {
     async function loadAvailability() {
@@ -67,14 +82,20 @@ export default function BookingForm() {
 
   function onChange(event) {
     const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => {
+      if (name === "serviceId") {
+        const nextStyles = getStyleOptions(value);
+        return { ...prev, serviceId: value, styleId: nextStyles[0]?.id || "" };
+      }
+      return { ...prev, [name]: value };
+    });
   }
 
   async function submitBooking(event) {
     event.preventDefault();
     setError("");
 
-    if (!form.fullName || !form.phone || !form.date || !form.time || !form.serviceId) {
+    if (!form.fullName || !form.phone || !form.date || !form.time || !form.serviceId || !form.styleId || !form.removalOption) {
       setError("يرجى إكمال جميع الحقول.");
       return;
     }
@@ -84,18 +105,12 @@ export default function BookingForm() {
     try {
       const response = await fetch("/api/checkout", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form)
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Booking failed");
-      }
-
+      if (!response.ok) throw new Error(data.error || "Booking failed");
       window.location.href = data.url;
     } catch (err) {
       setError(err.message);
@@ -109,43 +124,24 @@ export default function BookingForm() {
   return (
     <section id="booking" className="container-luxe py-14">
       <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="card-luxe p-6 md:p-8">
-          <p className="text-sm uppercase tracking-[0.25em] text-black/45">
-            Booking
-          </p>
+        <div className="card-luxe fade-up p-6 md:p-8">
+          <p className="text-sm uppercase tracking-[0.25em] text-black/45">Booking</p>
           <h2 className="section-title mt-2">احجزي موعدك</h2>
 
           <form className="mt-8 grid gap-5" onSubmit={submitBooking}>
             <div>
               <label className="mb-2 block text-sm font-medium">الاسم الكامل</label>
-              <input
-                name="fullName"
-                className="input-luxe"
-                value={form.fullName}
-                onChange={onChange}
-                placeholder="مثال: ريم أحمد"
-              />
+              <input name="fullName" className="input-luxe" value={form.fullName} onChange={onChange} placeholder="مثال: ريم أحمد" />
             </div>
 
             <div>
               <label className="mb-2 block text-sm font-medium">رقم الجوال</label>
-              <input
-                name="phone"
-                className="input-luxe"
-                value={form.phone}
-                onChange={onChange}
-                placeholder="05xxxxxxxx"
-              />
+              <input name="phone" className="input-luxe" value={form.phone} onChange={onChange} placeholder="05xxxxxxxx" />
             </div>
 
             <div>
               <label className="mb-2 block text-sm font-medium">الخدمة</label>
-              <select
-                name="serviceId"
-                className="input-luxe"
-                value={form.serviceId}
-                onChange={onChange}
-              >
+              <select name="serviceId" className="input-luxe" value={form.serviceId} onChange={onChange}>
                 {SERVICES.map((service) => (
                   <option key={service.id} value={service.id}>
                     {getServiceLabel(service)} — {service.price} SAR
@@ -154,86 +150,62 @@ export default function BookingForm() {
               </select>
             </div>
 
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium">هل تحتاج إزالة؟</label>
+                <select name="removalOption" className="input-luxe" value={form.removalOption} onChange={onChange}>
+                  {REMOVAL_OPTIONS.map((option) => (
+                    <option key={option.id} value={option.id}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">الرسمة المفضلة</label>
+                <select name="styleId" className="input-luxe" value={form.styleId} onChange={onChange}>
+                  {styleOptions.map((style) => (
+                    <option key={style.id} value={style.id}>{style.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div>
               <label className="mb-2 block text-sm font-medium">التاريخ</label>
-              <input
-                type="date"
-                name="date"
-                className="input-luxe"
-                value={form.date}
-                onChange={onChange}
-                min={today}
-              />
+              <input type="date" name="date" className="input-luxe" value={form.date} onChange={onChange} min={today} />
             </div>
 
             <div>
               <label className="mb-3 block text-sm font-medium">المواعيد المتاحة</label>
-
               {loadingSlots ? (
                 <p className="text-sm text-black/60">جاري تحميل المواعيد...</p>
               ) : (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                   {timeSlots.map((slot) => {
                     const disabled = bookedSlots.includes(slot);
-
                     return (
-                      <label
-                        key={slot}
-                        className={`cursor-pointer rounded-2xl border px-4 py-3 text-center text-sm transition ${
-                          disabled
-                            ? "cursor-not-allowed border-black/10 bg-black/5 text-black/30"
-                            : form.time === slot
-                            ? "border-gold bg-gold/20"
-                            : "border-black/10 bg-white hover:border-gold/60"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="time"
-                          value={slot}
-                          checked={form.time === slot}
-                          onChange={onChange}
-                          disabled={disabled}
-                          className="hidden"
-                        />
-                        {slot}
+                      <label key={slot} className={`cursor-pointer rounded-2xl border px-4 py-3 text-center text-sm transition ${disabled ? "cursor-not-allowed border-black/10 bg-black/5 text-black/30" : form.time === slot ? "border-gold bg-gold/20" : "border-black/10 bg-white hover:border-gold/60 hover:-translate-y-0.5"}`}>
+                        <input type="radio" name="time" value={slot} checked={form.time === slot} onChange={onChange} disabled={disabled} className="hidden" />
+                        <span className="block font-medium">{getDisplayTime(slot)}</span>
                       </label>
                     );
                   })}
                 </div>
               )}
-              <p className="mt-3 text-xs text-black/50">
-                صباحًا: 09:00 و 11:00 — مساءً: 16:00 و 18:00 و 20:00
-              </p>
+              <p className="mt-3 text-xs text-black/50">Morning: 9:00 AM و 11:00 AM — Evening: 4:00 PM و 6:00 PM و 8:00 PM</p>
             </div>
 
-            {warning ? (
-              <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                {warning}
-              </div>
-            ) : null}
+            {warning ? <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{warning}</div> : null}
+            {error ? <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
-            {error ? (
-              <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </div>
-            ) : null}
-
-            <button type="submit" className="btn-primary" disabled={submitting}>
-              {submitting
-                ? "جاري التحويل..."
-                : `ادفعي عربون ${selectedService?.deposit || 0} ريال`}
+            <button type="submit" className="btn-primary pulse-soft" disabled={submitting}>
+              {submitting ? "جاري التحويل..." : `ادفعي عربون ${selectedService?.deposit || 0} ريال`}
             </button>
           </form>
         </div>
 
-        <div className="card-luxe p-6 md:p-8">
-          <p className="text-sm uppercase tracking-[0.25em] text-black/45">
-            Summary
-          </p>
-          <h3 className="mt-2 text-2xl font-semibold">
-            {getServiceLabel(selectedService) || "Selected Service"}
-          </h3>
+        <div className="card-luxe fade-up p-6 md:p-8" style={{ animationDelay: "120ms" }}>
+          <p className="text-sm uppercase tracking-[0.25em] text-black/45">Summary</p>
+          <h3 className="mt-2 text-2xl font-semibold">{getServiceLabel(selectedService) || "Selected Service"}</h3>
 
           <div className="mt-6 space-y-4 text-sm">
             <div className="flex justify-between border-b border-black/5 pb-3">
@@ -248,18 +220,26 @@ export default function BookingForm() {
               <span className="text-black/55">المدة</span>
               <span className="font-medium">{selectedService?.duration || 0} min</span>
             </div>
+            <div className="flex justify-between border-b border-black/5 pb-3">
+              <span className="text-black/55">نوع الرسمة</span>
+              <span className="font-medium">{styleOptions.find((item) => item.id === form.styleId)?.label || "—"}</span>
+            </div>
+            <div className="flex justify-between border-b border-black/5 pb-3">
+              <span className="text-black/55">الإزالة</span>
+              <span className="font-medium">{REMOVAL_OPTIONS.find((item) => item.id === form.removalOption)?.label || "—"}</span>
+            </div>
+            <div className="flex justify-between border-b border-black/5 pb-3">
+              <span className="text-black/55">الوقت</span>
+              <span className="font-medium">{form.time ? DISPLAY_TIME_SLOTS[form.time] || form.time : "—"}</span>
+            </div>
             <div className="flex justify-between">
               <span className="text-black/55">المتبقي في الاستوديو</span>
-              <span className="font-medium">
-                {(selectedService?.price || 0) - (selectedService?.deposit || 0)} SAR
-              </span>
+              <span className="font-medium">{(selectedService?.price || 0) - (selectedService?.deposit || 0)} SAR</span>
             </div>
           </div>
 
           <div className="mt-8 rounded-3xl bg-ink px-5 py-5 text-white">
-            <p className="text-sm text-white/75">
-              لا يتكرر نفس الموعد في نفس اليوم. يمكن للأدمن تعديل الوقت أو الخدمة أو السعر من لوحة التحكم.
-            </p>
+            <p className="text-sm text-white/75">لا يتكرر نفس الموعد في نفس اليوم. يمكن للأدمن تعديل الوقت أو الخدمة أو السعر من لوحة التحكم.</p>
           </div>
         </div>
       </div>

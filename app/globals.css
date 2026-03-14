@@ -12,7 +12,9 @@ html {
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(circle at top right, rgba(212, 176, 106, 0.12), transparent 28%),
+    linear-gradient(180deg, #fcf8f3 0%, #f8f3ed 100%);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -26,7 +28,7 @@ body {
 }
 
 .input-luxe {
-  @apply w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-gold/40;
+  @apply w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:ring-2 focus:ring-gold/40 focus:border-gold/40;
 }
 
 .btn-primary {
@@ -43,4 +45,75 @@ body {
 
 .badge {
   @apply inline-flex rounded-full bg-gold/20 px-3 py-1 text-sm font-medium;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseSoft {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+.fade-up {
+  animation: fadeUp 0.75s ease both;
+}
+
+.service-card {
+  animation: fadeUp 0.8s ease both;
+}
+
+.pulse-soft {
+  animation: pulseSoft 2.6s ease-in-out infinite;
+}
+
+.hero-card,
+.consult-chip,
+.card-luxe,
+.btn-primary,
+.btn-gold {
+  transition: all 0.3s ease;
+}
+
+.hero-card:hover {
+  transform: translateY(-2px);
+}
+
+.consult-chip:hover {
+  transform: translateY(-2px) scale(1.01);
+}
+
+.floating-btn {
+  position: fixed;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.35rem;
+  height: 3.35rem;
+  border-radius: 9999px;
+  box-shadow: 0 18px 35px rgba(0,0,0,0.16);
+  transition: all 0.25s ease;
+}
+
+.floating-btn:hover {
+  transform: translateY(-2px);
+}
+
+.floating-whatsapp {
+  left: 1rem;
+  bottom: 1rem;
+  background: #25D366;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.floating-top {
+  right: 1rem;
+  bottom: 1rem;
+  background: #151515;
+  color: white;
+  font-size: 1.4rem;
 }
