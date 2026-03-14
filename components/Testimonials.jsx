@@ -1,19 +1,20 @@
+
 const TESTIMONIALS = [
   {
-    name: "نورة",
-    text: "شغل مرتب جدًا والرسمة طلعت على عيني أجمل من المتوقع، والثبات ممتاز والخدمة راقية."
-  },
-  {
     name: "ريم",
-    text: "أكثر شيء عجبني أنهم فهموا شكل عيني واختاروا لي رسمة مناسبة جدًا وطلعت النتيجة ناعمة وفخمة."
-  },
-  {
-    name: "جود",
-    text: "المكان مريح والحجز سهل جدًا، والرموش خفيفة على العين وتعطي جمال واضح بدون مبالغة."
+    text: "الخدمة كانت جدًا مرتبة والرسمه طلعت على عيني أحلى من المتوقع، وثبات الرموش ممتاز."
   },
   {
     name: "سارة",
-    text: "الريفل كان ممتاز وحافظ على نفس اللوك بشكل جميل، وأنصح فيهم جدًا خصوصًا لعشاق الترتيب والدقة."
+    text: "أحببت الاهتمام بالتفاصيل والاستشارة قبل التركيب، والنتيجة كانت ناعمة وفخمة."
+  },
+  {
+    name: "نوف",
+    text: "المكان رايق والمواعيد منظمة جدًا، وتجربة الروسي كانت جميلة وثقيلة بشكل أنيق."
+  },
+  {
+    name: "الجوهرة",
+    text: "من أفضل التجارب، خاصة اختيار الرسمة المناسبة لعيوني، والإزالة كانت لطيفة وآمنة."
   }
 ];
 
@@ -28,7 +29,7 @@ export default function Testimonials() {
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {TESTIMONIALS.map((item, index) => (
           <div key={item.name} className="card-luxe fade-up p-6" style={{ animationDelay: `${index * 90}ms` }}>
-            <div className="mb-4 flex items-center gap-1 text-[#d4b06a]" aria-hidden="true">
+            <div className="mb-4 flex items-center gap-1 text-[#D4B06A]">
               <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
             </div>
             <p className="text-sm leading-7 text-black/70">{item.text}</p>

@@ -16,8 +16,8 @@ export default function SuccessPage() {
             العودة للرئيسية
           </a>
           <a
-            href={buildWhatsAppUrl(`مرحبًا Rezo Lash ✨
-قمت بإتمام الحجز عبر الموقع وأرغب بتأكيد الموعد.`)}
+            href={buildWhatsAppUrl("مرحبًا Rezo Lash ✨
+قمت بإتمام الحجز عبر الموقع وأرغب بتأكيد الموعد.")}
             target="_blank"
             rel="noreferrer"
             className="btn-gold"

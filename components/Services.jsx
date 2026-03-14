@@ -1,4 +1,5 @@
-import { REMOVAL_FEE, SERVICE_STYLES, SERVICES, getServiceLabel, serviceSupportsRemoval } from "@/lib/booking";
+
+import { SERVICES, getServiceLabel } from "@/lib/booking";
 
 export default function Services() {
   return (
@@ -38,30 +39,13 @@ export default function Services() {
               <p className="mt-3 text-sm leading-7 text-black/70">{service.descriptionAr}</p>
               <p className="mt-2 text-sm font-medium text-black/60">{service.styleSummary}</p>
 
-              <div className="mt-4 rounded-2xl bg-[#faf5ef] p-4 text-sm">
-                <p className="font-semibold text-black/80">الرسومات المتاحة</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {SERVICE_STYLES[service.id].map((style) => (
-                    <span key={style.id} className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 text-xs font-medium text-black/75">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gold/20 text-[11px]">{style.icon}</span>
-                      <span>{style.label}</span>
-                    </span>
-                  ))}
-                </div>
-                {serviceSupportsRemoval(service.id) ? (
-                  <p className="mt-3 text-black/60">خيار الإزالة متاح عند الحاجة بقيمة إضافية {REMOVAL_FEE} SAR.</p>
-                ) : (
-                  <p className="mt-3 text-black/60">هذه الخدمة لا تتطلب خيار إزالة إضافي.</p>
-                )}
-              </div>
-
               <div className="mt-5 flex items-end justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-black/40">Price</p>
                   <p className="text-2xl font-semibold">{service.price} SAR</p>
                 </div>
-                <a href={`#booking`} className="btn-primary px-4 py-2 text-sm">
-                  احجزي
+                <a href="#booking" className="btn-primary">
+                  احجزي الآن
                 </a>
               </div>
             </div>
