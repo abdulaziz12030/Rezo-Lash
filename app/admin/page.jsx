@@ -1,5 +1,4 @@
 import AdminTable from "@/components/AdminTable";
-import { createWhatsAppMessage } from "@/lib/booking";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -15,14 +14,6 @@ export default async function AdminPage() {
   if (error) {
     throw new Error(error.message);
   }
-
-  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "";
-  const enriched = (data || []).map((booking) => ({
-    ...booking,
-    whatsapp_url: whatsappNumber
-      ? `https://wa.me/${whatsappNumber.replace(/\D/g, "")}?text=${encodeURIComponent(createWhatsAppMessage({ booking }))}`
-      : ""
-  }));
 
   return (
     <main className="container-luxe py-14">
@@ -40,7 +31,7 @@ export default async function AdminPage() {
       </div>
 
       <div className="mt-8">
-        <AdminTable bookings={enriched} />
+        <AdminTable bookings={data || []} />
       </div>
     </main>
   );

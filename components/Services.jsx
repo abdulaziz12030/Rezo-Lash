@@ -15,7 +15,7 @@ export default function Services() {
         </a>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {SERVICES.map((service) => (
           <div key={service.id} className="card-luxe overflow-hidden">
             <div className="aspect-[4/5] overflow-hidden bg-[#f5ede5]">
@@ -29,18 +29,18 @@ export default function Services() {
             <div className="p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-lg font-semibold">{service.nameAr}</h3>
-                  <p className="text-xs text-black/55">{service.nameEn}</p>
+                  <h3 className="text-xl font-semibold">{service.nameAr}</h3>
+                  <p className="text-sm text-black/55">{service.nameEn}</p>
                 </div>
-                <span className="badge whitespace-nowrap">{service.duration} min</span>
+                <span className="badge">{service.duration} min</span>
               </div>
 
-              <p className="mt-3 min-h-[48px] text-sm text-black/65">{service.descriptionAr}</p>
+              <p className="mt-3 text-sm text-black/65">{service.descriptionAr}</p>
 
-              <div className="mt-5 flex items-end justify-between gap-3">
+              <div className="mt-5 flex items-end justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-black/40">Price</p>
-                  <p className="text-xl font-semibold">{service.price === 0 ? "مجاني" : `${service.price} SAR`}</p>
+                  <p className="text-2xl font-semibold">{service.price} SAR</p>
                 </div>
                 <a href="#booking" className="btn-primary px-4 py-2 text-sm">
                   احجزي

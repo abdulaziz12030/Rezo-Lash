@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { DEFAULT_TIME_SLOTS, formatTimeLabel } from "@/lib/booking";
+import { DEFAULT_TIME_SLOTS } from "@/lib/booking";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export default async function AdminSettingsPage() {
 
       <div className="card-luxe mt-8 p-8">
         <p className="text-sm text-black/60">
-          الأوقات الافتراضية: {DEFAULT_TIME_SLOTS.map((slot) => formatTimeLabel(slot).en).join(" , ")}
+          الإعداد الافتراضي: 09:00, 11:00, 16:00, 18:00, 20:00
         </p>
 
         <form action="/api/settings" method="POST" className="mt-6 space-y-4">
