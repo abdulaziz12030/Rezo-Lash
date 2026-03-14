@@ -117,3 +117,57 @@ body {
   color: white;
   font-size: 1.4rem;
 }
+
+
+.style-card {
+  @apply cursor-pointer rounded-2xl border border-black/10 bg-white px-4 py-4 text-center transition hover:border-gold/60 hover:-translate-y-0.5;
+}
+
+.style-card-active {
+  @apply border-gold bg-[#fff7ef] shadow-sm;
+}
+
+.style-icon {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #f4e6d6 0%, #ead1b2 100%);
+  margin-bottom: 0.65rem;
+  position: relative;
+}
+
+.style-icon::after {
+  content: "";
+  position: absolute;
+  inset: 0.6rem;
+  border-radius: 9999px;
+  background: rgba(21, 21, 21, 0.18);
+}
+
+.soft-option {
+  @apply cursor-pointer rounded-2xl border border-black/10 bg-white px-4 py-4 transition hover:border-gold/60;
+}
+
+.soft-option-active {
+  @apply border-gold bg-[#fff7ef];
+}
+
+.soft-option-dot {
+  display: inline-flex;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 9999px;
+  background: #d8bb91;
+  margin-bottom: 0.5rem;
+}
+
+.soft-check {
+  @apply flex items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-4;
+}
+
+.soft-check input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #c9a56a;
+}

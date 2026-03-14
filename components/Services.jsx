@@ -1,13 +1,11 @@
-import { SERVICES, getServiceLabel, getStyleOptions } from "@/lib/booking";
+import { SERVICES, getServiceLabel } from "@/lib/booking";
 
 export default function Services() {
   return (
     <section id="services" className="container-luxe py-14">
       <div className="mb-8 flex items-end justify-between gap-4">
         <div className="fade-up">
-          <p className="text-sm uppercase tracking-[0.25em] text-black/45">
-            Services
-          </p>
+          <p className="text-sm uppercase tracking-[0.25em] text-black/45">Services</p>
           <h2 className="section-title mt-2">الخدمات</h2>
         </div>
         <a href="#booking" className="btn-gold hidden sm:inline-flex">
@@ -37,16 +35,6 @@ export default function Services() {
 
               <p className="mt-3 text-sm leading-7 text-black/70">{service.descriptionAr}</p>
               <p className="mt-2 text-sm font-medium text-black/60">{service.styleSummary}</p>
-
-              <div className="mt-4 rounded-2xl bg-[#faf5ef] p-4 text-sm">
-                <p className="font-semibold text-black/80">الرسومات المناسبة</p>
-                <ul className="mt-2 space-y-1 text-black/60">
-                  {getStyleOptions(service.id).map((style) => (
-                    <li key={style.id}>• {style.label}</li>
-                  ))}
-                </ul>
-                <p className="mt-3 text-black/60">الإزالة: متاحة عند الحاجة أو اختيار لا يتطلب إزالة.</p>
-              </div>
 
               <div className="mt-5 flex items-end justify-between">
                 <div>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getStripe } from "@/lib/payments";
 import {
+  calculateBookingTotals,
   getDisplayTime,
   getRemovalLabel,
   getServiceById,
@@ -13,9 +14,9 @@ import {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { fullName, phone, date, time, serviceId, styleId, removalOption } = body;
+    const { fullName, phone, date, time, serviceId, styleId, removalOption = "no-removal", lowerLashes = false } = body;
 
-    if (!fullName || !phone || !date || !time || !serviceId || !styleId || !removalOption) {
+    if (!fullName || !phone || !date || !time || !serviceId || !styleId) {
       return NextResponse.json({ error: "Missing required booking fields" }, { status: 400 });
     }
 
@@ -28,10 +29,12 @@ export async function POST(request) {
       return NextResponse.json({ error: "Invalid service selected" }, { status: 400 });
     }
 
+    const totals = calculateBookingTotals(service, { removalOption, lowerLashes });
     const styleLabel = getStyleLabel(serviceId, styleId);
-    const removalLabel = getRemovalLabel(removalOption);
+    const removalLabel = service.supportsRemoval ? getRemovalLabel(removalOption) : "لا ينطبق";
+    const lowerLashesLabel = service.supportsLowerLashes && lowerLashes ? "+ رموش سفلية" : "بدون رموش سفلية";
     const serviceLabel = getServiceLabel(service);
-    const detailedServiceName = `${serviceLabel} — ${styleLabel} — ${removalLabel}`;
+    const detailedServiceName = `${serviceLabel} — ${styleLabel} — ${removalLabel} — ${lowerLashesLabel}`;
 
     const supabase = getSupabaseAdmin();
 
@@ -57,8 +60,8 @@ export async function POST(request) {
         booking_time: time,
         service_id: service.id,
         service_name: detailedServiceName,
-        service_price: service.price,
-        deposit_amount: service.deposit,
+        service_price: totals.totalPrice,
+        deposit_amount: totals.depositAmount,
         status: "pending",
         payment_status: "unpaid"
       })
@@ -78,9 +81,9 @@ export async function POST(request) {
             currency: "sar",
             product_data: {
               name: `${serviceLabel} Deposit`,
-              description: `${styleLabel} | ${removalLabel} | ${date} | ${getDisplayTime(time)}`
+              description: `${styleLabel} | ${removalLabel} | ${lowerLashesLabel} | ${date} | ${getDisplayTime(time)}`
             },
-            unit_amount: service.deposit * 100
+            unit_amount: totals.depositAmount * 100
           },
           quantity: 1
         }
@@ -90,7 +93,10 @@ export async function POST(request) {
         bookingId: inserted.id,
         serviceLabel,
         styleLabel,
-        removalLabel
+        removalLabel,
+        lowerLashesLabel,
+        totalPrice: String(totals.totalPrice),
+        depositAmount: String(totals.depositAmount)
       },
       success_url: `${origin}/success`,
       cancel_url: `${origin}/booking`
