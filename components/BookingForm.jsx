@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DEFAULT_TIME_SLOTS, SERVICES, getServiceById, getServiceLabel } from "@/lib/booking";
+import {
+  DEFAULT_TIME_SLOTS,
+  SERVICES,
+  formatTimeLabel,
+  getServiceById,
+  getServiceLabel
+} from "@/lib/booking";
 
 export default function BookingForm() {
   const [form, setForm] = useState({
@@ -148,7 +154,7 @@ export default function BookingForm() {
               >
                 {SERVICES.map((service) => (
                   <option key={service.id} value={service.id}>
-                    {getServiceLabel(service)} — {service.price} SAR
+                    {getServiceLabel(service)} — {service.price === 0 ? "مجاني" : `${service.price} SAR`}
                   </option>
                 ))}
               </select>
@@ -175,6 +181,7 @@ export default function BookingForm() {
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                   {timeSlots.map((slot) => {
                     const disabled = bookedSlots.includes(slot);
+                    const label = formatTimeLabel(slot);
 
                     return (
                       <label
@@ -196,14 +203,15 @@ export default function BookingForm() {
                           disabled={disabled}
                           className="hidden"
                         />
-                        {slot}
+                        <div className="font-medium">{label.en}</div>
+                        <div className="mt-1 text-xs opacity-70">{slot < "12:00" ? "Morning" : "Evening"}</div>
                       </label>
                     );
                   })}
                 </div>
               )}
               <p className="mt-3 text-xs text-black/50">
-                صباحًا: 09:00 و 11:00 — مساءً: 16:00 و 18:00 و 20:00
+                صباحًا: 9:00 AM و 11:00 AM — مساءً: 4:00 PM و 6:00 PM و 8:00 PM
               </p>
             </div>
 
@@ -222,7 +230,9 @@ export default function BookingForm() {
             <button type="submit" className="btn-primary" disabled={submitting}>
               {submitting
                 ? "جاري التحويل..."
-                : `ادفعي عربون ${selectedService?.deposit || 0} ريال`}
+                : selectedService?.deposit > 0
+                ? `ادفعي عربون ${selectedService?.deposit || 0} ريال`
+                : "تأكيد الحجز"}
             </button>
           </form>
         </div>
@@ -238,7 +248,7 @@ export default function BookingForm() {
           <div className="mt-6 space-y-4 text-sm">
             <div className="flex justify-between border-b border-black/5 pb-3">
               <span className="text-black/55">السعر الكامل</span>
-              <span className="font-medium">{selectedService?.price || 0} SAR</span>
+              <span className="font-medium">{selectedService?.price === 0 ? "مجاني" : `${selectedService?.price || 0} SAR`}</span>
             </div>
             <div className="flex justify-between border-b border-black/5 pb-3">
               <span className="text-black/55">العربون</span>
@@ -251,7 +261,7 @@ export default function BookingForm() {
             <div className="flex justify-between">
               <span className="text-black/55">المتبقي في الاستوديو</span>
               <span className="font-medium">
-                {(selectedService?.price || 0) - (selectedService?.deposit || 0)} SAR
+                {Math.max((selectedService?.price || 0) - (selectedService?.deposit || 0), 0)} SAR
               </span>
             </div>
           </div>

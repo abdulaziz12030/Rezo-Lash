@@ -1,7 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { SERVICES, DEFAULT_TIME_SLOTS, getServiceById, getServiceLabel, isArchivedStatus } from "@/lib/booking";
+import {
+  SERVICES,
+  DEFAULT_TIME_SLOTS,
+  formatTimeLabel,
+  getServiceLabel,
+  isArchivedStatus
+} from "@/lib/booking";
 
 function normalizeDate(value) {
   return value || "";
@@ -107,9 +113,9 @@ export default function AdminTable({ bookings }) {
                   <span className="badge">{booking.status}</span>
                 </div>
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+                <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                   <Info label="الخدمة" value={booking.service_name} />
-                  <Info label="الموعد" value={`${booking.booking_date} — ${booking.booking_time}`} />
+                  <Info label="الموعد" value={`${booking.booking_date} — ${formatTimeLabel(booking.booking_time).en}`} />
                   <Info label="السعر" value={`${booking.service_price || 0} SAR`} />
                   <Info label="العربون" value={`${booking.deposit_amount || 0} SAR`} />
                 </div>
@@ -155,7 +161,7 @@ export default function AdminTable({ bookings }) {
                   <span className="mb-2 block">الوقت</span>
                   <select name="booking_time" defaultValue={booking.booking_time} className="input-luxe">
                     {DEFAULT_TIME_SLOTS.map((slot) => (
-                      <option key={slot} value={slot}>{slot}</option>
+                      <option key={slot} value={slot}>{formatTimeLabel(slot).en}</option>
                     ))}
                   </select>
                 </label>
@@ -181,7 +187,7 @@ export default function AdminTable({ bookings }) {
                   <input type="number" name="deposit_amount" defaultValue={booking.deposit_amount || 0} className="input-luxe" />
                 </label>
 
-                <div className="sm:col-span-2 flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 sm:col-span-2">
                   <button type="submit" className="btn-primary" disabled={savingId === booking.id}>
                     {savingId === booking.id ? "جارٍ الحفظ..." : "حفظ التعديل"}
                   </button>
@@ -202,6 +208,11 @@ export default function AdminTable({ bookings }) {
                       استعادة الحجز
                     </button>
                   )}
+                  {booking.whatsapp_url ? (
+                    <a href={booking.whatsapp_url} target="_blank" className="btn-gold">
+                      واتساب
+                    </a>
+                  ) : null}
                 </div>
               </form>
             </div>

@@ -61,18 +61,21 @@ export async function POST(request) {
         service_name: getServiceLabel(service),
         service_price: service.price,
         deposit_amount: service.deposit,
-        status: "pending",
-        payment_status: "unpaid"
+        status: service.deposit > 0 ? "pending" : "confirmed",
+        payment_status: service.deposit > 0 ? "unpaid" : "free"
       })
       .select()
       .single();
 
     if (insertError) throw insertError;
 
-    const stripe = getStripe();
-    const origin =
-      request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL;
+    const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL;
 
+    if (!service.deposit || service.deposit === 0) {
+      return NextResponse.json({ url: `${origin}/success?bookingId=${inserted.id}` });
+    }
+
+    const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
@@ -92,7 +95,7 @@ export async function POST(request) {
       metadata: {
         bookingId: inserted.id
       },
-      success_url: `${origin}/success`,
+      success_url: `${origin}/success?bookingId=${inserted.id}`,
       cancel_url: `${origin}/booking`
     });
 
