@@ -17,13 +17,11 @@ export default async function AdminSettingsPage() {
   return (
     <main className="container-luxe py-14">
       <p className="text-sm uppercase tracking-[0.25em] text-black/45">Admin</p>
-      <h1 className="section-title mt-2">إعدادات الأوقات المتاحة</h1>
+      <h1 className="section-title mt-2">إعدادات المواعيد</h1>
 
       <div className="card-luxe mt-8 p-8">
         <p className="text-sm text-black/60">
-          أدخل الأوقات مفصولة بفاصلة مثل:
-          <br />
-          11:00,13:30,16:00,18:30
+          الإعداد الافتراضي: 09:00, 11:00, 16:00, 18:00, 20:00
         </p>
 
         <form action="/api/settings" method="POST" className="mt-6 space-y-4">

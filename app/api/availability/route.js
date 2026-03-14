@@ -3,14 +3,14 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { DEFAULT_TIME_SLOTS } from "@/lib/booking";
 
 export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const date = searchParams.get("date");
+
+  if (!date) {
+    return NextResponse.json({ error: "Missing date parameter" }, { status: 400 });
+  }
+
   try {
-    const { searchParams } = new URL(request.url);
-    const date = searchParams.get("date");
-
-    if (!date) {
-      return NextResponse.json({ error: "Missing date parameter" }, { status: 400 });
-    }
-
     const supabase = getSupabaseAdmin();
 
     const [{ data: settingsData, error: settingsError }, { data: bookingsData, error: bookingsError }] =
@@ -29,11 +29,17 @@ export async function GET(request) {
     const timeSlots = settingsData?.value?.slots || DEFAULT_TIME_SLOTS;
     const bookedSlots = (bookingsData || []).map((item) => item.booking_time);
 
-    return NextResponse.json({ timeSlots, bookedSlots });
+    return NextResponse.json({ timeSlots, bookedSlots, fallback: false });
   } catch (error) {
-    return NextResponse.json(
-      { error: error.message || "Failed to load availability" },
-      { status: 500 }
-    );
+    const isMissingKeys = String(error?.message || "").includes("Missing Supabase admin keys");
+
+    return NextResponse.json({
+      timeSlots: DEFAULT_TIME_SLOTS,
+      bookedSlots: [],
+      fallback: true,
+      warning: isMissingKeys
+        ? "Supabase admin keys are missing. Showing default time slots until environment variables are added."
+        : "Could not read booked slots from the database. Showing default time slots temporarily."
+    });
   }
 }

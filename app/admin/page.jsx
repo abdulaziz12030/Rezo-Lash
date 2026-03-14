@@ -20,12 +20,12 @@ export default async function AdminPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-[0.25em] text-black/45">Admin</p>
-          <h1 className="section-title mt-2">لوحة المواعيد</h1>
+          <h1 className="section-title mt-2">لوحة الحجوزات</h1>
         </div>
 
         <div className="flex gap-3">
           <a href="/admin/settings" className="btn-gold">
-            الإعدادات
+            إعدادات المواعيد
           </a>
         </div>
       </div>

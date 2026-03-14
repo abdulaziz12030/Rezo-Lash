@@ -12,19 +12,17 @@ html {
 }
 
 body {
-  background:
-    radial-gradient(circle at top, rgba(255,255,255,0.55), transparent 32%),
-    linear-gradient(180deg, #f8f3ed 0%, #f4ede6 100%);
+  background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
 .container-luxe {
-  @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
 }
 
 .card-luxe {
-  @apply rounded-3xl border border-black/5 bg-white shadow-luxe;
+  @apply rounded-3xl bg-white shadow-luxe border border-black/5;
 }
 
 .input-luxe {
@@ -32,80 +30,17 @@ body {
 }
 
 .btn-primary {
-  @apply inline-flex items-center justify-center rounded-2xl bg-ink px-5 py-3 text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60;
+  @apply inline-flex items-center justify-center rounded-2xl bg-ink px-5 py-3 text-white transition hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed;
 }
 
 .btn-gold {
-  @apply inline-flex items-center justify-center rounded-2xl bg-gold px-5 py-3 text-ink transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60;
+  @apply inline-flex items-center justify-center rounded-2xl bg-gold px-5 py-3 text-ink transition hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed;
 }
 
 .section-title {
-  @apply text-3xl font-semibold tracking-tight md:text-4xl;
+  @apply text-3xl md:text-4xl font-semibold tracking-tight;
 }
 
 .badge {
   @apply inline-flex rounded-full bg-gold/20 px-3 py-1 text-sm font-medium;
 }
-
-.hero-art {
-  background:
-    radial-gradient(circle at 18% 18%, rgba(255,255,255,0.95), transparent 18%),
-    radial-gradient(circle at 80% 12%, rgba(230,196,152,0.55), transparent 22%),
-    linear-gradient(135deg, #efe2d8 0%, #e9d2c3 48%, #f4ece5 100%);
-}
-
-.eyelash-visual {
-  position: relative;
-  width: 100%;
-  height: 220px;
-  border-radius: 32px;
-  background: rgba(255,255,255,0.65);
-  overflow: hidden;
-}
-
-.eyelash-visual::before {
-  content: "";
-  position: absolute;
-  left: 10%;
-  right: 10%;
-  top: 44%;
-  height: 88px;
-  border: 5px solid rgba(25, 20, 17, 0.92);
-  border-top-left-radius: 240px 140px;
-  border-top-right-radius: 240px 140px;
-  border-bottom-left-radius: 240px 140px;
-  border-bottom-right-radius: 240px 140px;
-  background: rgba(255,255,255,0.88);
-}
-
-.iris {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 78px;
-  height: 78px;
-  transform: translate(-50%, -38%);
-  border-radius: 999px;
-  background: radial-gradient(circle at 40% 40%, #7f5a3e 0%, #6b4a32 52%, #221913 100%);
-  z-index: 2;
-}
-
-.lash {
-  position: absolute;
-  top: 18%;
-  left: 50%;
-  width: 6px;
-  height: 96px;
-  transform-origin: bottom center;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #be9367 0%, #7a5238 100%);
-  z-index: 3;
-}
-
-.lash-1 { transform: translateX(-154px) rotate(-38deg); height: 88px; }
-.lash-2 { transform: translateX(-104px) rotate(-24deg); height: 100px; }
-.lash-3 { transform: translateX(-54px) rotate(-12deg); height: 108px; }
-.lash-4 { transform: translateX(0px) rotate(0deg); height: 118px; }
-.lash-5 { transform: translateX(54px) rotate(12deg); height: 108px; }
-.lash-6 { transform: translateX(104px) rotate(24deg); height: 100px; }
-.lash-7 { transform: translateX(154px) rotate(38deg); height: 88px; }

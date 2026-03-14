@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { getStripe } from "@/lib/payments";
-import { getServiceById, isPastDateTime } from "@/lib/booking";
+import { getServiceById, getServiceLabel, isPastDateTime } from "@/lib/booking";
 
 export async function POST(request) {
   try {
@@ -45,7 +45,7 @@ export async function POST(request) {
 
     if (existing?.length > 0) {
       return NextResponse.json(
-        { error: "This slot is already booked" },
+        { error: "هذا الموعد محجوز بالفعل" },
         { status: 409 }
       );
     }
@@ -58,7 +58,7 @@ export async function POST(request) {
         booking_date: date,
         booking_time: time,
         service_id: service.id,
-        service_name: service.name,
+        service_name: getServiceLabel(service),
         service_price: service.price,
         deposit_amount: service.deposit,
         status: "pending",
@@ -80,7 +80,7 @@ export async function POST(request) {
           price_data: {
             currency: "sar",
             product_data: {
-              name: `${service.name} Deposit`,
+              name: `${getServiceLabel(service)} Deposit`,
               description: `Rezo Lash booking on ${date} at ${time}`
             },
             unit_amount: service.deposit * 100

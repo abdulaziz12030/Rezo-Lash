@@ -1,17 +1,20 @@
-<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="800" height="600" rx="32" fill="#F8F1EB"/>
-<ellipse cx="400" cy="300" rx="240" ry="120" fill="#FFF9F4" stroke="#201A17" stroke-width="10"/>
-<path d="M160 300C215 225 290 182 400 182C510 182 585 225 640 300" stroke="#201A17" stroke-width="10" stroke-linecap="round"/>
-<path d="M195 248L165 190" stroke="#A87349" stroke-width="10" stroke-linecap="round"/>
-<path d="M235 225L210 160" stroke="#A87349" stroke-width="10" stroke-linecap="round"/>
-<path d="M285 205L270 140" stroke="#A87349" stroke-width="12" stroke-linecap="round"/>
-<path d="M340 188L335 120" stroke="#A87349" stroke-width="10" stroke-linecap="round"/>
-<path d="M400 182L400 110" stroke="#A87349" stroke-width="12" stroke-linecap="round"/>
-<path d="M460 188L465 120" stroke="#A87349" stroke-width="10" stroke-linecap="round"/>
-<path d="M515 205L530 140" stroke="#A87349" stroke-width="12" stroke-linecap="round"/>
-<path d="M565 225L590 160" stroke="#A87349" stroke-width="10" stroke-linecap="round"/>
-<path d="M605 248L635 190" stroke="#A87349" stroke-width="10" stroke-linecap="round"/>
-<circle cx="400" cy="300" r="61" fill="#6A4A33"/>
-<circle cx="400" cy="300" r="28" fill="#1B1512"/>
-<text x="400" y="520" text-anchor="middle" font-size="42" font-family="Arial" fill="#201A17">Hybrid</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1500" viewBox="0 0 1200 1500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7efe8"/>
+      <stop offset="100%" stop-color="#e8d4c8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="1500" fill="url(#bg)"/>
+  <ellipse cx="600" cy="650" rx="350" ry="180" fill="#f4e5da"/>
+  <path d="M290 650 Q600 430 910 650" fill="none" stroke="#2b2523" stroke-width="18" stroke-linecap="round"/>
+  <path d="M345 650 Q600 510 855 650" fill="none" stroke="#5b4943" stroke-width="8" stroke-linecap="round"/>
+  <g stroke="#2b2523" stroke-width="9" stroke-linecap="round">
+    <path d="M360 625 L325 560"/><path d="M405 595 L382 530"/><path d="M455 575 L445 505"/>
+    <path d="M510 560 L510 490"/><path d="M570 552 L580 482"/><path d="M630 552 L620 482"/>
+    <path d="M690 560 L690 490"/><path d="M745 575 L755 505"/><path d="M795 595 L818 530"/>
+    <path d="M840 625 L875 560"/>
+  </g>
+  <text x="600" y="1080" text-anchor="middle" font-size="84" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#1d1715">HYBRID</text>
+  <text x="600" y="1160" text-anchor="middle" font-size="34" font-family="Arial, Helvetica, sans-serif" fill="#57443d">Replace with real model photo</text>
 </svg>

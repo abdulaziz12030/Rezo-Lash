@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { SERVICES, getServiceById } from "@/lib/booking";
+import { DEFAULT_TIME_SLOTS, SERVICES, getServiceById, getServiceLabel } from "@/lib/booking";
 
 export default function BookingForm() {
   const [form, setForm] = useState({
@@ -17,6 +17,7 @@ export default function BookingForm() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [warning, setWarning] = useState("");
 
   const selectedService = useMemo(
     () => getServiceById(form.serviceId),
@@ -28,11 +29,13 @@ export default function BookingForm() {
       if (!form.date) {
         setBookedSlots([]);
         setTimeSlots([]);
+        setWarning("");
         return;
       }
 
       setLoadingSlots(true);
       setError("");
+      setWarning("");
 
       try {
         const response = await fetch(`/api/availability?date=${form.date}`);
@@ -43,9 +46,17 @@ export default function BookingForm() {
         }
 
         setBookedSlots(data.bookedSlots || []);
-        setTimeSlots(data.timeSlots || []);
+        setTimeSlots(data.timeSlots?.length ? data.timeSlots : DEFAULT_TIME_SLOTS);
+        setWarning(data.warning || "");
+        setForm((prev) => ({
+          ...prev,
+          time: data.bookedSlots?.includes(prev.time) ? "" : prev.time
+        }));
       } catch (err) {
-        setError(err.message);
+        setTimeSlots(DEFAULT_TIME_SLOTS);
+        setBookedSlots([]);
+        setWarning("تعذر قراءة المواعيد من قاعدة البيانات مؤقتًا، لذلك تم عرض الأوقات الافتراضية.");
+        setError("");
       } finally {
         setLoadingSlots(false);
       }
@@ -64,7 +75,7 @@ export default function BookingForm() {
     setError("");
 
     if (!form.fullName || !form.phone || !form.date || !form.time || !form.serviceId) {
-      setError("Please complete all fields.");
+      setError("يرجى إكمال جميع الحقول.");
       return;
     }
 
@@ -93,6 +104,8 @@ export default function BookingForm() {
     }
   }
 
+  const today = new Date().toISOString().split("T")[0];
+
   return (
     <section id="booking" className="container-luxe py-14">
       <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
@@ -110,7 +123,7 @@ export default function BookingForm() {
                 className="input-luxe"
                 value={form.fullName}
                 onChange={onChange}
-                placeholder="مثال: Reem Ahmed"
+                placeholder="مثال: ريم أحمد"
               />
             </div>
 
@@ -135,7 +148,7 @@ export default function BookingForm() {
               >
                 {SERVICES.map((service) => (
                   <option key={service.id} value={service.id}>
-                    {service.arabicName} | {service.name} — {service.price} SAR
+                    {getServiceLabel(service)} — {service.price} SAR
                   </option>
                 ))}
               </select>
@@ -149,23 +162,24 @@ export default function BookingForm() {
                 className="input-luxe"
                 value={form.date}
                 onChange={onChange}
+                min={today}
               />
             </div>
 
             <div>
-              <label className="mb-3 block text-sm font-medium">الوقت المتاح</label>
+              <label className="mb-3 block text-sm font-medium">المواعيد المتاحة</label>
 
               {loadingSlots ? (
-                <p className="text-sm text-black/60">Loading slots...</p>
+                <p className="text-sm text-black/60">جاري تحميل المواعيد...</p>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                   {timeSlots.map((slot) => {
                     const disabled = bookedSlots.includes(slot);
 
                     return (
                       <label
                         key={slot}
-                        className={`cursor-pointer rounded-2xl border px-4 py-3 text-center transition ${
+                        className={`cursor-pointer rounded-2xl border px-4 py-3 text-center text-sm transition ${
                           disabled
                             ? "cursor-not-allowed border-black/10 bg-black/5 text-black/30"
                             : form.time === slot
@@ -188,7 +202,16 @@ export default function BookingForm() {
                   })}
                 </div>
               )}
+              <p className="mt-3 text-xs text-black/50">
+                صباحًا: 09:00 و 11:00 — مساءً: 16:00 و 18:00 و 20:00
+              </p>
             </div>
+
+            {warning ? (
+              <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                {warning}
+              </div>
+            ) : null}
 
             {error ? (
               <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -198,7 +221,7 @@ export default function BookingForm() {
 
             <button type="submit" className="btn-primary" disabled={submitting}>
               {submitting
-                ? "Redirecting..."
+                ? "جاري التحويل..."
                 : `ادفعي عربون ${selectedService?.deposit || 0} ريال`}
             </button>
           </form>
@@ -209,7 +232,7 @@ export default function BookingForm() {
             Summary
           </p>
           <h3 className="mt-2 text-2xl font-semibold">
-            {selectedService?.arabicName || "الخدمة المختارة"}
+            {getServiceLabel(selectedService) || "Selected Service"}
           </h3>
 
           <div className="mt-6 space-y-4 text-sm">
@@ -223,7 +246,7 @@ export default function BookingForm() {
             </div>
             <div className="flex justify-between border-b border-black/5 pb-3">
               <span className="text-black/55">المدة</span>
-              <span className="font-medium">{selectedService?.duration || 0} دقيقة</span>
+              <span className="font-medium">{selectedService?.duration || 0} min</span>
             </div>
             <div className="flex justify-between">
               <span className="text-black/55">المتبقي في الاستوديو</span>
@@ -235,7 +258,7 @@ export default function BookingForm() {
 
           <div className="mt-8 rounded-3xl bg-ink px-5 py-5 text-white">
             <p className="text-sm text-white/75">
-              بعد نجاح الدفع سيتم تأكيد الموعد تلقائيًا في لوحة الإدارة.
+              لا يتكرر نفس الموعد في نفس اليوم. يمكن للأدمن تعديل الوقت أو الخدمة أو السعر من لوحة التحكم.
             </p>
           </div>
         </div>
