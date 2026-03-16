@@ -1,45 +1,97 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { DEFAULT_TIME_SLOTS } from "@/lib/booking";
+import { createClient } from "@supabase/supabase-js";
+
+const DEFAULT_SLOTS = [
+  { value: "09:00", label: "9:00 AM" },
+  { value: "11:00", label: "11:00 AM" },
+  { value: "16:00", label: "4:00 PM" },
+  { value: "18:00", label: "6:00 PM" },
+  { value: "20:00", label: "8:00 PM" },
+];
+
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) return null;
+
+  return createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
 
 export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const date = searchParams.get("date");
-
-  if (!date) {
-    return NextResponse.json({ error: "Missing date parameter" }, { status: 400 });
-  }
-
   try {
-    const supabase = getSupabaseAdmin();
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get("date");
 
-    const [{ data: settingsData, error: settingsError }, { data: bookingsData, error: bookingsError }] =
-      await Promise.all([
-        supabase.from("settings").select("*").eq("key", "time_slots").maybeSingle(),
-        supabase
-          .from("bookings")
-          .select("time")
-          .eq("date", date)
-          .in("status", ["pending", "confirmed"])
-      ]);
+    if (!date) {
+      return NextResponse.json(
+        { error: "Missing date parameter" },
+        { status: 400 }
+      );
+    }
 
-    if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
-    if (bookingsError) throw bookingsError;
+    const supabase = getSupabaseClient();
 
-    const timeSlots = settingsData?.value?.slots || DEFAULT_TIME_SLOTS;
-    const bookedSlots = (bookingsData || []).map((item) => item.time).filter(Boolean);
+    // إذا لم تكن المفاتيح موجودة، أعد كل المواعيد كحل احتياطي
+    if (!supabase) {
+      return NextResponse.json({
+        date,
+        slots: DEFAULT_SLOTS.map((slot) => ({
+          ...slot,
+          available: true,
+        })),
+        bookedSlots: [],
+      });
+    }
 
-    return NextResponse.json({ timeSlots, bookedSlots, fallback: false });
-  } catch (error) {
-    const isMissingKeys = String(error?.message || "").includes("Missing Supabase admin keys");
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("booking_date, booking_time, status")
+      .eq("booking_date", date)
+      .in("status", ["pending", "confirmed"]);
+
+    if (error) {
+      console.error("Supabase availability error:", error);
+
+      return NextResponse.json(
+        {
+          error: "Could not read booked slots from the database",
+          details: error.message,
+        },
+        { status: 500 }
+      );
+    }
+
+    const bookedSlots = (data || [])
+      .map((item) => item.booking_time)
+      .filter(Boolean);
+
+    const slots = DEFAULT_SLOTS.map((slot) => ({
+      ...slot,
+      available: !bookedSlots.includes(slot.value),
+    }));
 
     return NextResponse.json({
-      timeSlots: DEFAULT_TIME_SLOTS,
-      bookedSlots: [],
-      fallback: true,
-      warning: isMissingKeys
-        ? "Supabase admin keys are missing. Showing default time slots until environment variables are added."
-        : "Could not read booked slots from the database. Showing default time slots temporarily."
+      date,
+      slots,
+      bookedSlots,
     });
+  } catch (error) {
+    console.error("Availability route error:", error);
+
+    return NextResponse.json(
+      {
+        error: "Unexpected server error",
+        details: error.message,
+      },
+      { status: 500 }
+    );
   }
 }
