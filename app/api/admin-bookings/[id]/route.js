@@ -17,15 +17,15 @@ export async function PATCH(request, { params }) {
     if (currentError) throw currentError;
 
     const nextService = body.serviceId ? getServiceById(body.serviceId) : null;
-    const bookingDate = body.booking_date || current.booking_date;
-    const bookingTime = body.booking_time || current.booking_time;
+    const bookingDate = body.date || current.date;
+    const bookingTime = body.time || current.time;
     const status = body.status || current.status;
 
     const { data: conflicting, error: conflictingError } = await supabase
       .from("bookings")
       .select("id")
-      .eq("booking_date", bookingDate)
-      .eq("booking_time", bookingTime)
+      .eq("date", bookingDate)
+      .eq("time", bookingTime)
       .neq("id", bookingId)
       .in("status", ["pending", "confirmed"])
       .limit(1);
@@ -36,18 +36,17 @@ export async function PATCH(request, { params }) {
     }
 
     const payload = {
-      booking_date: bookingDate,
-      booking_time: bookingTime,
+      date: bookingDate,
+      time: bookingTime,
       status,
-      service_price: Number.isFinite(body.service_price) ? body.service_price : current.service_price,
-      deposit_amount: Number.isFinite(body.deposit_amount) ? body.deposit_amount : current.deposit_amount
+      price: Number.isFinite(body.price) ? body.price : current.price,
+      deposit: Number.isFinite(body.deposit) ? body.deposit : current.deposit
     };
 
     if (nextService) {
-      payload.service_id = nextService.id;
-      payload.service_name = getServiceLabel(nextService);
-      if (!body.service_price && body.service_price !== 0) payload.service_price = nextService.price;
-      if (!body.deposit_amount && body.deposit_amount !== 0) payload.deposit_amount = nextService.deposit;
+      payload.service = getServiceLabel(nextService);
+      if (!(Number.isFinite(body.price))) payload.price = nextService.price;
+      if (!(Number.isFinite(body.deposit))) payload.deposit = nextService.deposit;
     }
 
     const { data: updated, error: updateError } = await supabase
@@ -58,12 +57,8 @@ export async function PATCH(request, { params }) {
       .single();
 
     if (updateError) throw updateError;
-
     return NextResponse.json({ booking: updated });
   } catch (error) {
-    return NextResponse.json(
-      { error: error.message || "Failed to update booking" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || "Failed to update booking" }, { status: 500 });
   }
 }

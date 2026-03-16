@@ -10,7 +10,10 @@ import {
   getDisplayTime,
   getServiceById,
   getServiceLabel,
-  getStyleOptions
+  getStyleOptions,
+  buildAdminWhatsAppUrl,
+  buildCustomerReplyTemplate,
+  normalizePhoneNumber,
 } from "@/lib/booking";
 
 const POLICY_NOTICE = "لا يحق للعميلة المطالبة بالعربون في حال تم إلغاء الموعد أو التأخر أكثر من 20 دقيقة، كما يمكن للعميلة إعادة جدولة الموعد قبل 24 ساعة وبحسب المواعيد المتاحة.";
@@ -33,6 +36,7 @@ export default function BookingForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
+  const [slotMessage, setSlotMessage] = useState("");
 
   const selectedService = useMemo(() => getServiceById(form.serviceId), [form.serviceId]);
   const styleOptions = useMemo(() => getStyleOptions(form.serviceId), [form.serviceId]);
@@ -55,6 +59,12 @@ export default function BookingForm() {
       setForm((prev) => ({ ...prev, lowerLashes: false }));
     }
   }, [selectedService, form.lowerLashes, form.removalOption]);
+
+  useEffect(() => {
+    if (!slotMessage) return;
+    const timeout = setTimeout(() => setSlotMessage(""), 2200);
+    return () => clearTimeout(timeout);
+  }, [slotMessage]);
 
   useEffect(() => {
     async function loadAvailability() {
@@ -141,6 +151,16 @@ export default function BookingForm() {
 
   const today = new Date().toISOString().split("T")[0];
   const selectedStyle = styleOptions.find((item) => item.id === form.styleId);
+  const previewAdminLink = buildAdminWhatsAppUrl({
+    name: form.fullName,
+    phone: normalizePhoneNumber(form.phone),
+    serviceLabel: getServiceLabel(selectedService),
+    styleLabel: selectedStyle ? `${selectedStyle.label} — ${selectedStyle.description}` : "",
+    date: form.date,
+    time: form.time ? getDisplayTime(form.time) : "",
+    totalPrice: totals.totalPrice,
+    depositAmount: totals.depositAmount
+  });
 
   return (
     <section id="booking" className="container-luxe py-14">
@@ -230,81 +250,69 @@ export default function BookingForm() {
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                   {timeSlots.map((slot) => {
                     const disabled = bookedSlots.includes(slot);
+                    const active = form.time === slot && !disabled;
                     return (
-                      <label key={slot} className={`cursor-pointer rounded-2xl border px-4 py-3 text-center text-sm transition ${disabled ? "cursor-not-allowed border-black/10 bg-black/5 text-black/30" : form.time === slot ? "border-gold bg-gold/20" : "border-black/10 bg-white hover:border-gold/60 hover:-translate-y-0.5"}`}>
-                        <input type="radio" name="time" value={slot} checked={form.time === slot} onChange={onChange} disabled={disabled} className="hidden" />
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => {
+                          if (disabled) {
+                            setSlotMessage("هذا الموعد غير متاح");
+                            return;
+                          }
+                          setForm((prev) => ({ ...prev, time: slot }));
+                        }}
+                        className={`slot-btn ${disabled ? "slot-btn-booked" : active ? "slot-btn-active" : "slot-btn-open"}`}
+                        aria-disabled={disabled}
+                      >
                         <span className="block font-medium">{getDisplayTime(slot)}</span>
-                      </label>
+                        <span className="mt-1 block text-[11px]">{disabled ? "محجوز" : "متاح"}</span>
+                      </button>
                     );
                   })}
                 </div>
               )}
+              {slotMessage ? <p className="mt-3 text-sm font-medium text-rose-600">{slotMessage}</p> : null}
               <p className="mt-3 text-xs text-black/50">Morning: 9:00 AM و 11:00 AM — Evening: 4:00 PM و 6:00 PM و 8:00 PM</p>
             </div>
 
-            <div className="rounded-2xl bg-[#fff7ef] px-4 py-4 text-sm leading-7 text-black/75 border border-[#f1ddc6]">
-              <strong className="block mb-1 text-black">تنبيه قبل الدفع</strong>
+            <div className="rounded-2xl bg-[#fff7ef] px-4 py-4 text-sm leading-7 text-black/75">
+              <strong className="mb-2 block text-black">تنبيه قبل الدفع</strong>
               {POLICY_NOTICE}
             </div>
 
-            {warning ? <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{warning}</div> : null}
-            {error ? <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+            {warning ? <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{warning}</div> : null}
+            {error ? <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
-            <button type="submit" className="btn-primary pulse-soft" disabled={submitting}>
-              {submitting ? "جاري التحويل..." : `ادفعي العربون ${totals.depositAmount || 0} ريال`}
+            <button className="btn-primary w-full" disabled={submitting} type="submit">
+              {submitting ? "جاري إنشاء الحجز..." : `ادفعي العربون ${totals.depositAmount} ريال`}
             </button>
           </form>
         </div>
 
-        <div className="card-luxe fade-up p-6 md:p-8" style={{ animationDelay: "120ms" }}>
+        <div className="card-luxe fade-up p-6 md:p-8">
           <p className="text-sm uppercase tracking-[0.25em] text-black/45">Summary</p>
           <h3 className="mt-2 text-2xl font-semibold">{getServiceLabel(selectedService) || "Selected Service"}</h3>
 
           <div className="mt-6 space-y-4 text-sm">
-            <div className="flex justify-between border-b border-black/5 pb-3">
-              <span className="text-black/55">السعر الأساسي</span>
-              <span className="font-medium">{totals.basePrice} SAR</span>
-            </div>
-            {selectedService?.supportsRemoval ? (
-              <div className="flex justify-between border-b border-black/5 pb-3">
-                <span className="text-black/55">الإزالة</span>
-                <span className="font-medium">{totals.removalPrice} SAR</span>
-              </div>
-            ) : null}
-            {selectedService?.supportsLowerLashes ? (
-              <div className="flex justify-between border-b border-black/5 pb-3">
-                <span className="text-black/55">الرموش السفلية</span>
-                <span className="font-medium">{totals.lowerLashesPrice} SAR</span>
-              </div>
-            ) : null}
-            <div className="flex justify-between border-b border-black/5 pb-3">
-              <span className="text-black/55">إجمالي المبلغ</span>
-              <span className="font-medium">{totals.totalPrice} SAR</span>
-            </div>
-            <div className="flex justify-between border-b border-black/5 pb-3">
-              <span className="text-black/55">العربون 50%</span>
-              <span className="font-medium">{totals.depositAmount} SAR</span>
-            </div>
-            <div className="flex justify-between border-b border-black/5 pb-3">
-              <span className="text-black/55">المدة الإجمالية</span>
-              <span className="font-medium">{totals.totalDuration} min</span>
-            </div>
-            <div className="flex justify-between border-b border-black/5 pb-3">
-              <span className="text-black/55">نوع الرسمة</span>
-              <span className="font-medium">{selectedStyle ? `${selectedStyle.label} — ${selectedStyle.description}` : "—"}</span>
-            </div>
-            <div className="flex justify-between border-b border-black/5 pb-3">
-              <span className="text-black/55">الوقت</span>
-              <span className="font-medium">{form.time ? DISPLAY_TIME_SLOTS[form.time] || form.time : "—"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-black/55">المتبقي في الاستوديو</span>
-              <span className="font-medium">{totals.remainingAmount} SAR</span>
-            </div>
+            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">السعر الأساسي</span><span className="font-medium">{totals.basePrice} SAR</span></div>
+            {selectedService?.supportsRemoval ? <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">الإزالة</span><span className="font-medium">{totals.removalPrice} SAR</span></div> : null}
+            {selectedService?.supportsLowerLashes ? <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">الرموش السفلية</span><span className="font-medium">{totals.lowerLashesPrice} SAR</span></div> : null}
+            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">إجمالي المبلغ</span><span className="font-medium">{totals.totalPrice} SAR</span></div>
+            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">العربون 50%</span><span className="font-medium">{totals.depositAmount} SAR</span></div>
+            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">المدة الإجمالية</span><span className="font-medium">{totals.totalDuration} min</span></div>
+            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">نوع الرسمة</span><span className="font-medium">{selectedStyle ? `${selectedStyle.label} — ${selectedStyle.description}` : "—"}</span></div>
+            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">الوقت</span><span className="font-medium">{form.time ? DISPLAY_TIME_SLOTS[form.time] || form.time : "—"}</span></div>
+            <div className="flex justify-between"><span className="text-black/55">المتبقي في الاستوديو</span><span className="font-medium">{totals.remainingAmount} SAR</span></div>
           </div>
 
           <div className="mt-8 rounded-3xl bg-ink px-5 py-5 text-white">
-            <p className="text-sm text-white/75">لا يتكرر نفس الموعد في نفس اليوم. يمكن للأدمن تعديل الوقت أو الخدمة أو السعر من لوحة التحكم.</p>
+            <p className="text-sm text-white/75">المواعيد المحجوزة تبقى ظاهرة بلون باهت لسهولة معرفة اليوم بالكامل، ويمكن للإدارة تعديل الحجز أو إعادة جدولته من لوحة التحكم.</p>
+          </div>
+
+          <div className="mt-4 rounded-3xl border border-black/10 bg-white px-5 py-5 text-sm text-black/70">
+            <p className="font-semibold text-black">معاينة رسالة الإدارة</p>
+            <p className="mt-2 line-clamp-4 break-all">{previewAdminLink}</p>
           </div>
         </div>
       </div>

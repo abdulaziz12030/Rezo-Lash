@@ -18,16 +18,16 @@ export async function GET(request) {
         supabase.from("settings").select("*").eq("key", "time_slots").maybeSingle(),
         supabase
           .from("bookings")
-          .select("booking_time")
-          .eq("booking_date", date)
+          .select("time")
+          .eq("date", date)
           .in("status", ["pending", "confirmed"])
       ]);
 
-    if (settingsError) throw settingsError;
+    if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
     if (bookingsError) throw bookingsError;
 
     const timeSlots = settingsData?.value?.slots || DEFAULT_TIME_SLOTS;
-    const bookedSlots = (bookingsData || []).map((item) => item.booking_time);
+    const bookedSlots = (bookingsData || []).map((item) => item.time).filter(Boolean);
 
     return NextResponse.json({ timeSlots, bookedSlots, fallback: false });
   } catch (error) {

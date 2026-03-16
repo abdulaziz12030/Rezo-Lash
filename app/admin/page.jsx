@@ -5,15 +5,8 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const supabase = getSupabaseAdmin();
-
-  const { data, error } = await supabase
-    .from("bookings")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  const { data, error } = await supabase.from("bookings").select("*").order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
 
   return (
     <main className="container-luxe py-14">
@@ -21,18 +14,13 @@ export default async function AdminPage() {
         <div>
           <p className="text-sm uppercase tracking-[0.25em] text-black/45">Admin</p>
           <h1 className="section-title mt-2">لوحة الحجوزات</h1>
+          <p className="mt-2 text-black/60">إدارة الحجوزات، تحديث الحالات، وإرسال رسائل الواتساب للعميلة من نفس اللوحة.</p>
         </div>
-
         <div className="flex gap-3">
-          <a href="/admin/settings" className="btn-gold">
-            إعدادات المواعيد
-          </a>
+          <a href="/admin/settings" className="btn-gold">إعدادات المواعيد</a>
         </div>
       </div>
-
-      <div className="mt-8">
-        <AdminTable bookings={data || []} />
-      </div>
+      <div className="mt-8"><AdminTable bookings={data || []} /></div>
     </main>
   );
 }
