@@ -3,10 +3,34 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
+function normalizeBooking(row) {
+  return {
+    id: row.id,
+    name: row.full_name || row.name || "",
+    phone: row.phone || "",
+    service: row.service_name || row.service || "",
+    date: row.booking_date || row.date || "",
+    time: row.booking_time || row.time || "",
+    price: row.service_price ?? row.price ?? 0,
+    deposit: row.deposit_amount ?? row.deposit ?? 0,
+    status: row.status || "pending",
+    created_at: row.created_at || "",
+    style: row.style || "",
+    lower_lashes: row.lower_lashes ?? false,
+    lash_removal: row.lash_removal ?? false,
+  };
+}
+
 export default async function AdminPage() {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.from("bookings").select("*").order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("*")
+    .order("created_at", { ascending: false });
+
   if (error) throw new Error(error.message);
+
+  const normalized = (data || []).map(normalizeBooking);
 
   return (
     <main className="container-luxe py-14">
@@ -17,10 +41,11 @@ export default async function AdminPage() {
           <p className="mt-2 text-black/60">إدارة الحجوزات، تحديث الحالات، وإرسال رسائل الواتساب للعميلة من نفس اللوحة.</p>
         </div>
         <div className="flex gap-3">
+          <a href="/" className="btn-gold">العودة للموقع</a>
           <a href="/admin/settings" className="btn-gold">إعدادات المواعيد</a>
         </div>
       </div>
-      <div className="mt-8"><AdminTable bookings={data || []} /></div>
+      <div className="mt-8"><AdminTable bookings={normalized} /></div>
     </main>
   );
 }

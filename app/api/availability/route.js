@@ -1,28 +1,18 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import {
+  DEFAULT_TIME_SLOTS,
+  getDisplayTime,
+  getTodayRiyadhDate,
+  isPastDateTime,
+} from "@/lib/booking";
 
-const DEFAULT_SLOTS = [
-  { value: "09:00", label: "9:00 AM" },
-  { value: "11:00", label: "11:00 AM" },
-  { value: "16:00", label: "4:00 PM" },
-  { value: "18:00", label: "6:00 PM" },
-  { value: "20:00", label: "8:00 PM" },
-];
-
-function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !key) return null;
-
-  return createClient(url, key, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
+function normalizeSlots(rawSlots) {
+  if (!Array.isArray(rawSlots)) return DEFAULT_TIME_SLOTS;
+  const normalized = rawSlots
+    .map((slot) => String(slot || "").trim())
+    .filter(Boolean);
+  return normalized.length ? normalized : DEFAULT_TIME_SLOTS;
 }
 
 export async function GET(request) {
@@ -37,55 +27,53 @@ export async function GET(request) {
       );
     }
 
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseAdmin();
 
-    // إذا لم تكن المفاتيح موجودة، أعد كل المواعيد كحل احتياطي
-    if (!supabase) {
-      return NextResponse.json({
-        date,
-        slots: DEFAULT_SLOTS.map((slot) => ({
-          ...slot,
-          available: true,
-        })),
-        bookedSlots: [],
-      });
-    }
+    const [{ data: bookings, error: bookingsError }, { data: settingsRow, error: settingsError }] =
+      await Promise.all([
+        supabase
+          .from("bookings")
+          .select("booking_time, status")
+          .eq("booking_date", date)
+          .in("status", ["pending", "confirmed"]),
+        supabase
+          .from("settings")
+          .select("value")
+          .eq("key", "time_slots")
+          .maybeSingle(),
+      ]);
 
-    const { data, error } = await supabase
-      .from("bookings")
-      .select("booking_date, booking_time, status")
-      .eq("booking_date", date)
-      .in("status", ["pending", "confirmed"]);
+    if (bookingsError) throw bookingsError;
+    if (settingsError) throw settingsError;
 
-    if (error) {
-      console.error("Supabase availability error:", error);
-
-      return NextResponse.json(
-        {
-          error: "Could not read booked slots from the database",
-          details: error.message,
-        },
-        { status: 500 }
-      );
-    }
-
-    const bookedSlots = (data || [])
+    const configuredSlots = normalizeSlots(settingsRow?.value?.slots);
+    const bookedSlots = (bookings || [])
       .map((item) => item.booking_time)
       .filter(Boolean);
 
-    const slots = DEFAULT_SLOTS.map((slot) => ({
-      ...slot,
-      available: !bookedSlots.includes(slot.value),
-    }));
+    const isToday = date === getTodayRiyadhDate();
+
+    const slots = configuredSlots.map((slot) => {
+      const booked = bookedSlots.includes(slot);
+      const inPast = isToday && isPastDateTime(date, slot);
+
+      return {
+        value: slot,
+        label: getDisplayTime(slot),
+        available: !booked && !inPast,
+        booked,
+        inPast,
+      };
+    });
 
     return NextResponse.json({
       date,
       slots,
       bookedSlots,
+      timeSlots: configuredSlots,
+      warning: isToday ? "تم إخفاء المواعيد التي مضى وقتها في تاريخ اليوم." : "",
     });
   } catch (error) {
-    console.error("Availability route error:", error);
-
     return NextResponse.json(
       {
         error: "Unexpected server error",

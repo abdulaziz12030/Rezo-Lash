@@ -7,16 +7,13 @@ import {
   REMOVAL_OPTIONS,
   SERVICES,
   calculateBookingTotals,
-  getDisplayTime,
   getServiceById,
   getServiceLabel,
   getStyleOptions,
-  buildAdminWhatsAppUrl,
-  buildCustomerReplyTemplate,
-  normalizePhoneNumber,
 } from "@/lib/booking";
 
-const POLICY_NOTICE = "لا يحق للعميلة المطالبة بالعربون في حال تم إلغاء الموعد أو التأخر أكثر من 20 دقيقة، كما يمكن للعميلة إعادة جدولة الموعد قبل 24 ساعة وبحسب المواعيد المتاحة.";
+const POLICY_NOTICE =
+  "لا يحق للعميلة المطالبة بالعربون في حال تم إلغاء الموعد أو التأخر أكثر من 20 دقيقة، كما يمكن للعميلة إعادة جدولة الموعد قبل 24 ساعة وبحسب المواعيد المتاحة.";
 
 export default function BookingForm() {
   const [form, setForm] = useState({
@@ -27,11 +24,12 @@ export default function BookingForm() {
     styleId: getStyleOptions(SERVICES[0].id)[0]?.id || "",
     removalOption: REMOVAL_OPTIONS[0].id,
     lowerLashes: false,
-    time: ""
+    time: "",
   });
 
-  const [timeSlots, setTimeSlots] = useState([]);
+  const [timeSlots, setTimeSlots] = useState(DEFAULT_TIME_SLOTS);
   const [bookedSlots, setBookedSlots] = useState([]);
+  const [pastSlots, setPastSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -70,7 +68,8 @@ export default function BookingForm() {
     async function loadAvailability() {
       if (!form.date) {
         setBookedSlots([]);
-        setTimeSlots([]);
+        setPastSlots([]);
+        setTimeSlots(DEFAULT_TIME_SLOTS);
         setWarning("");
         return;
       }
@@ -84,21 +83,24 @@ export default function BookingForm() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "Failed to load availability");
+          throw new Error(data.details || data.error || "Failed to load availability");
         }
 
-        setBookedSlots(data.bookedSlots || []);
-        setTimeSlots(data.timeSlots?.length ? data.timeSlots : DEFAULT_TIME_SLOTS);
+        const slotsFromApi = (data.slots || []).map((slot) => slot.value);
+        setBookedSlots((data.slots || []).filter((slot) => slot.booked).map((slot) => slot.value));
+        setPastSlots((data.slots || []).filter((slot) => slot.inPast).map((slot) => slot.value));
+        setTimeSlots(slotsFromApi.length ? slotsFromApi : (data.timeSlots || DEFAULT_TIME_SLOTS));
         setWarning(data.warning || "");
         setForm((prev) => ({
           ...prev,
-          time: data.bookedSlots?.includes(prev.time) ? "" : prev.time
+          time: (data.slots || []).some((slot) => slot.value === prev.time && !slot.available) ? "" : prev.time,
         }));
       } catch (err) {
         setTimeSlots(DEFAULT_TIME_SLOTS);
         setBookedSlots([]);
-        setWarning("تعذر قراءة المواعيد من قاعدة البيانات مؤقتًا، لذلك تم عرض الأوقات الافتراضية.");
-        setError("");
+        setPastSlots([]);
+        setWarning("تعذر قراءة المواعيد من قاعدة البيانات مؤقتًا.");
+        setError(err.message || "");
       } finally {
         setLoadingSlots(false);
       }
@@ -112,11 +114,15 @@ export default function BookingForm() {
     setForm((prev) => {
       if (name === "serviceId") {
         const nextStyles = getStyleOptions(value);
-        return { ...prev, serviceId: value, styleId: nextStyles[0]?.id || "", removalOption: REMOVAL_OPTIONS[0].id, lowerLashes: false };
+        return {
+          ...prev,
+          serviceId: value,
+          styleId: nextStyles[0]?.id || "",
+          removalOption: REMOVAL_OPTIONS[0].id,
+          lowerLashes: false,
+        };
       }
-      if (type === "checkbox") {
-        return { ...prev, [name]: checked };
-      }
+      if (type === "checkbox") return { ...prev, [name]: checked };
       return { ...prev, [name]: value };
     });
   }
@@ -136,7 +142,7 @@ export default function BookingForm() {
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
+        body: JSON.stringify(form),
       });
 
       const data = await response.json();
@@ -151,16 +157,6 @@ export default function BookingForm() {
 
   const today = new Date().toISOString().split("T")[0];
   const selectedStyle = styleOptions.find((item) => item.id === form.styleId);
-  const previewAdminLink = buildAdminWhatsAppUrl({
-    name: form.fullName,
-    phone: normalizePhoneNumber(form.phone),
-    serviceLabel: getServiceLabel(selectedService),
-    styleLabel: selectedStyle ? `${selectedStyle.label} — ${selectedStyle.description}` : "",
-    date: form.date,
-    time: form.time ? getDisplayTime(form.time) : "",
-    totalPrice: totals.totalPrice,
-    depositAmount: totals.depositAmount
-  });
 
   return (
     <section id="booking" className="container-luxe py-14">
@@ -249,70 +245,62 @@ export default function BookingForm() {
               ) : (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                   {timeSlots.map((slot) => {
-                    const disabled = bookedSlots.includes(slot);
+                    const booked = bookedSlots.includes(slot);
+                    const inPast = pastSlots.includes(slot);
+                    const disabled = booked || inPast;
                     const active = form.time === slot && !disabled;
+
                     return (
                       <button
                         key={slot}
                         type="button"
                         onClick={() => {
-                          if (disabled) {
-                            setSlotMessage("هذا الموعد غير متاح");
-                            return;
-                          }
+                          if (booked) return setSlotMessage("هذا الموعد محجوز");
+                          if (inPast) return setSlotMessage("هذا الوقت انتهى لليوم");
                           setForm((prev) => ({ ...prev, time: slot }));
                         }}
-                        className={`slot-btn ${disabled ? "slot-btn-booked" : active ? "slot-btn-active" : "slot-btn-open"}`}
-                        aria-disabled={disabled}
+                        className={`slot-btn ${disabled ? "slot-btn-booked" : active ? "slot-btn-active" : "slot-btn-available"}`}
                       >
-                        <span className="block font-medium">{getDisplayTime(slot)}</span>
-                        <span className="mt-1 block text-[11px]">{disabled ? "محجوز" : "متاح"}</span>
+                        <span>{DISPLAY_TIME_SLOTS[slot] || slot}</span>
                       </button>
                     );
                   })}
                 </div>
               )}
-              {slotMessage ? <p className="mt-3 text-sm font-medium text-rose-600">{slotMessage}</p> : null}
-              <p className="mt-3 text-xs text-black/50">Morning: 9:00 AM و 11:00 AM — Evening: 4:00 PM و 6:00 PM و 8:00 PM</p>
+              {slotMessage ? <p className="mt-3 text-sm text-rose-600">{slotMessage}</p> : null}
+              {warning ? <p className="mt-3 text-sm text-amber-700">{warning}</p> : null}
             </div>
 
-            <div className="rounded-2xl bg-[#fff7ef] px-4 py-4 text-sm leading-7 text-black/75">
-              <strong className="mb-2 block text-black">تنبيه قبل الدفع</strong>
+            <div className="rounded-3xl border border-black/5 bg-black/[0.02] p-4 text-sm text-black/65">
               {POLICY_NOTICE}
             </div>
 
-            {warning ? <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{warning}</div> : null}
-            {error ? <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+            {error ? <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
 
-            <button className="btn-primary w-full" disabled={submitting} type="submit">
-              {submitting ? "جاري إنشاء الحجز..." : `ادفعي العربون ${totals.depositAmount} ريال`}
+            <button type="submit" className="btn-primary" disabled={submitting}>
+              {submitting ? "جارٍ إرسال الطلب..." : "إرسال طلب الحجز"}
             </button>
           </form>
         </div>
 
-        <div className="card-luxe fade-up p-6 md:p-8">
+        <div className="card-luxe p-6 md:p-8">
           <p className="text-sm uppercase tracking-[0.25em] text-black/45">Summary</p>
-          <h3 className="mt-2 text-2xl font-semibold">{getServiceLabel(selectedService) || "Selected Service"}</h3>
+          <h3 className="section-title mt-2 text-2xl">ملخص الحجز</h3>
 
           <div className="mt-6 space-y-4 text-sm">
-            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">السعر الأساسي</span><span className="font-medium">{totals.basePrice} SAR</span></div>
+            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">الخدمة الأساسية</span><span className="font-medium">{selectedService?.price || 0} SAR</span></div>
             {selectedService?.supportsRemoval ? <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">الإزالة</span><span className="font-medium">{totals.removalPrice} SAR</span></div> : null}
             {selectedService?.supportsLowerLashes ? <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">الرموش السفلية</span><span className="font-medium">{totals.lowerLashesPrice} SAR</span></div> : null}
             <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">إجمالي المبلغ</span><span className="font-medium">{totals.totalPrice} SAR</span></div>
-            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">العربون 50%</span><span className="font-medium">{totals.depositAmount} SAR</span></div>
+            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">العربون المقترح</span><span className="font-medium">{totals.depositAmount} SAR</span></div>
             <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">المدة الإجمالية</span><span className="font-medium">{totals.totalDuration} min</span></div>
             <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">نوع الرسمة</span><span className="font-medium">{selectedStyle ? `${selectedStyle.label} — ${selectedStyle.description}` : "—"}</span></div>
             <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">الوقت</span><span className="font-medium">{form.time ? DISPLAY_TIME_SLOTS[form.time] || form.time : "—"}</span></div>
-            <div className="flex justify-between"><span className="text-black/55">المتبقي في الاستوديو</span><span className="font-medium">{totals.remainingAmount} SAR</span></div>
+            <div className="flex justify-between"><span className="text-black/55">المتبقي بعد العربون</span><span className="font-medium">{totals.remainingAmount} SAR</span></div>
           </div>
 
           <div className="mt-8 rounded-3xl bg-ink px-5 py-5 text-white">
-            <p className="text-sm text-white/75">المواعيد المحجوزة تبقى ظاهرة بلون باهت لسهولة معرفة اليوم بالكامل، ويمكن للإدارة تعديل الحجز أو إعادة جدولته من لوحة التحكم.</p>
-          </div>
-
-          <div className="mt-4 rounded-3xl border border-black/10 bg-white px-5 py-5 text-sm text-black/70">
-            <p className="font-semibold text-black">معاينة رسالة الإدارة</p>
-            <p className="mt-2 line-clamp-4 break-all">{previewAdminLink}</p>
+            <p className="text-sm text-white/75">بعد إرسال الطلب سيتم حفظ الحجز في النظام مباشرة، ويمكن للإدارة مراجعته وتأكيده أو تحديثه من لوحة التحكم.</p>
           </div>
         </div>
       </div>
