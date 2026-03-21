@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import {
-  DEFAULT_TIME_SLOTS,
-  getDisplayTime,
-  getTodayRiyadhDate,
-  isPastDateTime,
-} from "@/lib/booking";
+import { DEFAULT_TIME_SLOTS, isPastDateTime } from "@/lib/booking";
 
-function normalizeSlots(rawSlots) {
-  if (!Array.isArray(rawSlots)) return DEFAULT_TIME_SLOTS;
-  const normalized = rawSlots
-    .map((slot) => String(slot || "").trim())
-    .filter(Boolean);
-  return normalized.length ? normalized : DEFAULT_TIME_SLOTS;
+function buildSlotObjects(slotValues, bookedSlots, selectedDate) {
+  return slotValues.map((slot) => {
+    const booked = bookedSlots.includes(slot);
+    const past = isPastDateTime(selectedDate, slot);
+    return {
+      value: slot,
+      label: slot,
+      available: !booked && !past,
+      booked,
+      past,
+    };
+  });
 }
 
 export async function GET(request) {
@@ -21,64 +22,36 @@ export async function GET(request) {
     const date = searchParams.get("date");
 
     if (!date) {
-      return NextResponse.json(
-        { error: "Missing date parameter" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing date parameter" }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
 
-    const [{ data: bookings, error: bookingsError }, { data: settingsRow, error: settingsError }] =
-      await Promise.all([
-        supabase
-          .from("bookings")
-          .select("booking_time, status")
-          .eq("booking_date", date)
-          .in("status", ["pending", "confirmed"]),
-        supabase
-          .from("settings")
-          .select("value")
-          .eq("key", "time_slots")
-          .maybeSingle(),
-      ]);
+    const [{ data: settingsData, error: settingsError }, { data: bookingsData, error: bookingsError }] = await Promise.all([
+      supabase.from("settings").select("value").eq("key", "time_slots").maybeSingle(),
+      supabase
+        .from("bookings")
+        .select("booking_time, status")
+        .eq("booking_date", date)
+        .in("status", ["pending", "confirmed"]),
+    ]);
 
-    if (bookingsError) throw bookingsError;
     if (settingsError) throw settingsError;
+    if (bookingsError) throw bookingsError;
 
-    const configuredSlots = normalizeSlots(settingsRow?.value?.slots);
-    const bookedSlots = (bookings || [])
-      .map((item) => item.booking_time)
-      .filter(Boolean);
-
-    const isToday = date === getTodayRiyadhDate();
-
-    const slots = configuredSlots.map((slot) => {
-      const booked = bookedSlots.includes(slot);
-      const inPast = isToday && isPastDateTime(date, slot);
-
-      return {
-        value: slot,
-        label: getDisplayTime(slot),
-        available: !booked && !inPast,
-        booked,
-        inPast,
-      };
-    });
+    const configuredSlots = settingsData?.value?.slots;
+    const slotValues = Array.isArray(configuredSlots) && configuredSlots.length ? configuredSlots : DEFAULT_TIME_SLOTS;
+    const bookedSlots = (bookingsData || []).map((item) => item.booking_time).filter(Boolean);
 
     return NextResponse.json({
       date,
-      slots,
+      slots: buildSlotObjects(slotValues, bookedSlots, date),
+      slotValues,
       bookedSlots,
-      timeSlots: configuredSlots,
-      warning: isToday ? "تم إخفاء المواعيد التي مضى وقتها في تاريخ اليوم." : "",
     });
   } catch (error) {
     return NextResponse.json(
-      {
-        error: "Unexpected server error",
-        details: error.message,
-      },
+      { error: "Could not read booked slots from the database", details: error.message },
       { status: 500 }
     );
   }
