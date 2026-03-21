@@ -6,6 +6,7 @@ function buildSlotObjects(slotValues, bookedSlots, selectedDate) {
   return slotValues.map((slot) => {
     const booked = bookedSlots.includes(slot);
     const past = isPastDateTime(selectedDate, slot);
+
     return {
       value: slot,
       label: slot,
@@ -22,13 +23,23 @@ export async function GET(request) {
     const date = searchParams.get("date");
 
     if (!date) {
-      return NextResponse.json({ error: "Missing date parameter" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing date parameter" },
+        { status: 400 }
+      );
     }
 
     const supabase = getSupabaseAdmin();
 
-    const [{ data: settingsData, error: settingsError }, { data: bookingsData, error: bookingsError }] = await Promise.all([
-      supabase.from("settings").select("value").eq("key", "time_slots").maybeSingle(),
+    const [
+      { data: settingsData, error: settingsError },
+      { data: bookingsData, error: bookingsError },
+    ] = await Promise.all([
+      supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "time_slots")
+        .maybeSingle(),
       supabase
         .from("bookings")
         .select("booking_time, status")
@@ -40,8 +51,14 @@ export async function GET(request) {
     if (bookingsError) throw bookingsError;
 
     const configuredSlots = settingsData?.value?.slots;
-    const slotValues = Array.isArray(configuredSlots) && configuredSlots.length ? configuredSlots : DEFAULT_TIME_SLOTS;
-    const bookedSlots = (bookingsData || []).map((item) => item.booking_time).filter(Boolean);
+    const slotValues =
+      Array.isArray(configuredSlots) && configuredSlots.length
+        ? configuredSlots
+        : DEFAULT_TIME_SLOTS;
+
+    const bookedSlots = (bookingsData || [])
+      .map((item) => item.booking_time)
+      .filter(Boolean);
 
     return NextResponse.json({
       date,
@@ -51,7 +68,10 @@ export async function GET(request) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Could not read booked slots from the database", details: error.message },
+      {
+        error: "Could not read booked slots from the database",
+        details: error.message,
+      },
       { status: 500 }
     );
   }
