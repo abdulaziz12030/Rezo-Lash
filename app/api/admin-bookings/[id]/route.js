@@ -17,8 +17,8 @@ export async function PATCH(request, { params }) {
     if (currentError) throw currentError;
 
     const nextService = body.serviceId ? getServiceById(body.serviceId) : null;
-    const bookingDate = body.date || current.booking_date || current.date;
-    const bookingTime = body.time || current.booking_time || current.time;
+    const bookingDate = body.date || current.booking_date;
+    const bookingTime = body.time || current.booking_time;
     const status = body.status || current.status;
 
     const { data: conflicting, error: conflictingError } = await supabase
@@ -31,23 +31,32 @@ export async function PATCH(request, { params }) {
       .limit(1);
 
     if (conflictingError) throw conflictingError;
+
     if (conflicting?.length && ["pending", "confirmed"].includes(status)) {
-      return NextResponse.json({ error: "يوجد حجز آخر على نفس الموعد." }, { status: 409 });
+      return NextResponse.json(
+        { error: "يوجد حجز آخر على نفس الموعد." },
+        { status: 409 }
+      );
     }
 
     const payload = {
       booking_date: bookingDate,
       booking_time: bookingTime,
       status,
-      service_price: Number.isFinite(body.price) ? body.price : current.service_price,
-      deposit_amount: Number.isFinite(body.deposit) ? body.deposit : current.deposit_amount,
+      service_price: Number.isFinite(body.price)
+        ? body.price
+        : (current.service_price ?? 0),
+      deposit_amount: Number.isFinite(body.deposit)
+        ? body.deposit
+        : (current.deposit_amount ?? 0),
     };
 
     if (nextService) {
       payload.service_id = nextService.id;
       payload.service_name = getServiceLabel(nextService);
-      if (!(Number.isFinite(body.price))) payload.service_price = nextService.price;
-      if (!(Number.isFinite(body.deposit))) payload.deposit_amount = nextService.deposit;
+
+      if (!Number.isFinite(body.price)) payload.service_price = nextService.price;
+      if (!Number.isFinite(body.deposit)) payload.deposit_amount = nextService.deposit;
     }
 
     const { data: updated, error: updateError } = await supabase
@@ -73,6 +82,9 @@ export async function PATCH(request, { params }) {
       style: updated.style || "",
       lower_lashes: updated.lower_lashes ?? false,
       lash_removal: updated.lash_removal ?? false,
+      removal_option: updated.removal_option || "no-removal",
+      payment_status: updated.payment_status || "unpaid",
+      notes: updated.notes || "",
     };
 
     return NextResponse.json({ booking: normalized });
