@@ -31,7 +31,6 @@ export async function PATCH(request, { params }) {
       .limit(1);
 
     if (conflictingError) throw conflictingError;
-
     if (conflicting?.length && ["pending", "confirmed"].includes(status)) {
       return NextResponse.json(
         { error: "يوجد حجز آخر على نفس الموعد." },
@@ -54,7 +53,6 @@ export async function PATCH(request, { params }) {
     if (nextService) {
       payload.service_id = nextService.id;
       payload.service_name = getServiceLabel(nextService);
-
       if (!Number.isFinite(body.price)) payload.service_price = nextService.price;
       if (!Number.isFinite(body.deposit)) payload.deposit_amount = nextService.deposit;
     }

@@ -251,7 +251,7 @@ export default function BookingForm() {
                         type="button"
                         onClick={() => {
                           if (disabled) {
-                            setSlotMessage("هذا الموعد غير متاح");
+                            setSlotMessage("هذا الموعد غير متاح أو محجوز مسبقًا");
                             return;
                           }
                           setForm((prev) => ({ ...prev, time: slot }));
@@ -260,7 +260,7 @@ export default function BookingForm() {
                         aria-disabled={disabled}
                       >
                         <span className="block font-medium">{getDisplayTime(slot)}</span>
-                        <span className="mt-1 block text-[11px]">{disabled ? "محجوز" : "متاح"}</span>
+                        <span className="mt-1 block text-[11px]">{disabled ? "غير متاح" : "متاح"}</span>
                       </button>
                     );
                   })}

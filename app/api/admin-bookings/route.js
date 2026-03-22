@@ -25,7 +25,6 @@ function normalizeBooking(row) {
 export async function GET() {
   try {
     const supabase = getSupabaseAdmin();
-
     const { data, error } = await supabase
       .from("bookings")
       .select("*")
@@ -33,9 +32,7 @@ export async function GET() {
 
     if (error) throw error;
 
-    return NextResponse.json({
-      bookings: (data || []).map(normalizeBooking),
-    });
+    return NextResponse.json({ bookings: (data || []).map(normalizeBooking) });
   } catch (error) {
     return NextResponse.json(
       { error: error.message || "Failed to fetch bookings" },
