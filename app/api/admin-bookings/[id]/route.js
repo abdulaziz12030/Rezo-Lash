@@ -17,46 +17,36 @@ export async function PATCH(request, { params }) {
     if (currentError) throw currentError;
 
     const nextService = body.serviceId ? getServiceById(body.serviceId) : null;
-    const bookingDate = body.date || current.booking_date;
-    const bookingTime = body.time || current.booking_time;
+    const bookingDate = body.date || current.date;
+    const bookingTime = body.time || current.time;
     const status = body.status || current.status;
 
     const { data: conflicting, error: conflictingError } = await supabase
       .from("bookings")
       .select("id")
-      .eq("booking_date", bookingDate)
-      .eq("booking_time", bookingTime)
+      .eq("date", bookingDate)
+      .eq("time", bookingTime)
       .neq("id", bookingId)
       .in("status", ["pending", "confirmed"])
       .limit(1);
 
     if (conflictingError) throw conflictingError;
-
     if (conflicting?.length && ["pending", "confirmed"].includes(status)) {
-      return NextResponse.json(
-        { error: "يوجد حجز آخر على نفس الموعد." },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "يوجد حجز آخر على نفس الموعد." }, { status: 409 });
     }
 
     const payload = {
-      booking_date: bookingDate,
-      booking_time: bookingTime,
+      date: bookingDate,
+      time: bookingTime,
       status,
-      service_price: Number.isFinite(body.price)
-        ? body.price
-        : (current.service_price ?? 0),
-      deposit_amount: Number.isFinite(body.deposit)
-        ? body.deposit
-        : (current.deposit_amount ?? 0),
+      price: Number.isFinite(body.price) ? body.price : current.price,
+      deposit: Number.isFinite(body.deposit) ? body.deposit : current.deposit
     };
 
     if (nextService) {
-      payload.service_id = nextService.id;
-      payload.service_name = getServiceLabel(nextService);
-
-      if (!Number.isFinite(body.price)) payload.service_price = nextService.price;
-      if (!Number.isFinite(body.deposit)) payload.deposit_amount = nextService.deposit;
+      payload.service = getServiceLabel(nextService);
+      if (!(Number.isFinite(body.price))) payload.price = nextService.price;
+      if (!(Number.isFinite(body.deposit))) payload.deposit = nextService.deposit;
     }
 
     const { data: updated, error: updateError } = await supabase
@@ -67,31 +57,8 @@ export async function PATCH(request, { params }) {
       .single();
 
     if (updateError) throw updateError;
-
-    const normalized = {
-      id: updated.id,
-      name: updated.full_name || "",
-      phone: updated.phone || "",
-      service: updated.service_name || "",
-      date: updated.booking_date || "",
-      time: updated.booking_time || "",
-      price: updated.service_price ?? 0,
-      deposit: updated.deposit_amount ?? 0,
-      status: updated.status || "pending",
-      created_at: updated.created_at || "",
-      style: updated.style || "",
-      lower_lashes: updated.lower_lashes ?? false,
-      lash_removal: updated.lash_removal ?? false,
-      removal_option: updated.removal_option || "no-removal",
-      payment_status: updated.payment_status || "unpaid",
-      notes: updated.notes || "",
-    };
-
-    return NextResponse.json({ booking: normalized });
+    return NextResponse.json({ booking: updated });
   } catch (error) {
-    return NextResponse.json(
-      { error: error.message || "Failed to update booking" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || "Failed to update booking" }, { status: 500 });
   }
 }

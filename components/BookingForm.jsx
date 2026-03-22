@@ -11,10 +11,12 @@ import {
   getServiceById,
   getServiceLabel,
   getStyleOptions,
+  buildAdminWhatsAppUrl,
+  buildCustomerReplyTemplate,
+  normalizePhoneNumber,
 } from "@/lib/booking";
 
-const POLICY_NOTICE =
-  "لا يحق للعميلة المطالبة بالعربون في حال تم إلغاء الموعد أو التأخر أكثر من 20 دقيقة، كما يمكن للعميلة إعادة جدولة الموعد قبل 24 ساعة وبحسب المواعيد المتاحة.";
+const POLICY_NOTICE = "لا يحق للعميلة المطالبة بالعربون في حال تم إلغاء الموعد أو التأخر أكثر من 20 دقيقة، كما يمكن للعميلة إعادة جدولة الموعد قبل 24 ساعة وبحسب المواعيد المتاحة.";
 
 export default function BookingForm() {
   const [form, setForm] = useState({
@@ -25,10 +27,10 @@ export default function BookingForm() {
     styleId: getStyleOptions(SERVICES[0].id)[0]?.id || "",
     removalOption: REMOVAL_OPTIONS[0].id,
     lowerLashes: false,
-    time: "",
+    time: ""
   });
 
-  const [timeSlots, setTimeSlots] = useState(DEFAULT_TIME_SLOTS);
+  const [timeSlots, setTimeSlots] = useState([]);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -68,7 +70,7 @@ export default function BookingForm() {
     async function loadAvailability() {
       if (!form.date) {
         setBookedSlots([]);
-        setTimeSlots(DEFAULT_TIME_SLOTS);
+        setTimeSlots([]);
         setWarning("");
         return;
       }
@@ -82,21 +84,21 @@ export default function BookingForm() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.details || data.error || "Failed to load availability");
+          throw new Error(data.error || "Failed to load availability");
         }
 
         setBookedSlots(data.bookedSlots || []);
-        setTimeSlots(data.slotValues || DEFAULT_TIME_SLOTS);
+        setTimeSlots(data.timeSlots?.length ? data.timeSlots : DEFAULT_TIME_SLOTS);
         setWarning(data.warning || "");
         setForm((prev) => ({
           ...prev,
-          time: (data.bookedSlots || []).includes(prev.time) ? "" : prev.time,
+          time: data.bookedSlots?.includes(prev.time) ? "" : prev.time
         }));
       } catch (err) {
         setTimeSlots(DEFAULT_TIME_SLOTS);
         setBookedSlots([]);
         setWarning("تعذر قراءة المواعيد من قاعدة البيانات مؤقتًا، لذلك تم عرض الأوقات الافتراضية.");
-        setError(err.message || "");
+        setError("");
       } finally {
         setLoadingSlots(false);
       }
@@ -110,13 +112,7 @@ export default function BookingForm() {
     setForm((prev) => {
       if (name === "serviceId") {
         const nextStyles = getStyleOptions(value);
-        return {
-          ...prev,
-          serviceId: value,
-          styleId: nextStyles[0]?.id || "",
-          removalOption: REMOVAL_OPTIONS[0].id,
-          lowerLashes: false,
-        };
+        return { ...prev, serviceId: value, styleId: nextStyles[0]?.id || "", removalOption: REMOVAL_OPTIONS[0].id, lowerLashes: false };
       }
       if (type === "checkbox") {
         return { ...prev, [name]: checked };
@@ -140,7 +136,7 @@ export default function BookingForm() {
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(form)
       });
 
       const data = await response.json();
@@ -155,6 +151,16 @@ export default function BookingForm() {
 
   const today = new Date().toISOString().split("T")[0];
   const selectedStyle = styleOptions.find((item) => item.id === form.styleId);
+  const previewAdminLink = buildAdminWhatsAppUrl({
+    name: form.fullName,
+    phone: normalizePhoneNumber(form.phone),
+    serviceLabel: getServiceLabel(selectedService),
+    styleLabel: selectedStyle ? `${selectedStyle.label} — ${selectedStyle.description}` : "",
+    date: form.date,
+    time: form.time ? getDisplayTime(form.time) : "",
+    totalPrice: totals.totalPrice,
+    depositAmount: totals.depositAmount
+  });
 
   return (
     <section id="booking" className="container-luxe py-14">
@@ -271,7 +277,7 @@ export default function BookingForm() {
             </div>
 
             <div className="rounded-2xl bg-[#fff7ef] px-4 py-4 text-sm leading-7 text-black/75">
-              <strong className="mb-2 block text-black">تنبيه قبل تأكيد الحجز</strong>
+              <strong className="mb-2 block text-black">تنبيه قبل الدفع</strong>
               {POLICY_NOTICE}
             </div>
 
@@ -279,7 +285,7 @@ export default function BookingForm() {
             {error ? <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
             <button className="btn-primary w-full" disabled={submitting} type="submit">
-              {submitting ? "جاري إرسال طلب الحجز..." : "إرسلي طلب الحجز"}
+              {submitting ? "جاري إنشاء الحجز..." : `ادفعي العربون ${totals.depositAmount} ريال`}
             </button>
           </form>
         </div>
@@ -293,15 +299,20 @@ export default function BookingForm() {
             {selectedService?.supportsRemoval ? <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">الإزالة</span><span className="font-medium">{totals.removalPrice} SAR</span></div> : null}
             {selectedService?.supportsLowerLashes ? <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">الرموش السفلية</span><span className="font-medium">{totals.lowerLashesPrice} SAR</span></div> : null}
             <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">إجمالي المبلغ</span><span className="font-medium">{totals.totalPrice} SAR</span></div>
-            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">العربون المقترح</span><span className="font-medium">{totals.depositAmount} SAR</span></div>
+            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">العربون 50%</span><span className="font-medium">{totals.depositAmount} SAR</span></div>
             <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">المدة الإجمالية</span><span className="font-medium">{totals.totalDuration} min</span></div>
             <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">نوع الرسمة</span><span className="font-medium">{selectedStyle ? `${selectedStyle.label} — ${selectedStyle.description}` : "—"}</span></div>
             <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">الوقت</span><span className="font-medium">{form.time ? DISPLAY_TIME_SLOTS[form.time] || form.time : "—"}</span></div>
-            <div className="flex justify-between"><span className="text-black/55">المتبقي بعد العربون</span><span className="font-medium">{totals.remainingAmount} SAR</span></div>
+            <div className="flex justify-between"><span className="text-black/55">المتبقي في الاستوديو</span><span className="font-medium">{totals.remainingAmount} SAR</span></div>
           </div>
 
           <div className="mt-8 rounded-3xl bg-ink px-5 py-5 text-white">
-            <p className="text-sm text-white/75">بعد إرسال الطلب سيتم حفظ الحجز في النظام مباشرة، ويمكن للإدارة مراجعته وتأكيده أو تحديثه من لوحة التحكم.</p>
+            <p className="text-sm text-white/75">المواعيد المحجوزة تبقى ظاهرة بلون باهت لسهولة معرفة اليوم بالكامل، ويمكن للإدارة تعديل الحجز أو إعادة جدولته من لوحة التحكم.</p>
+          </div>
+
+          <div className="mt-4 rounded-3xl border border-black/10 bg-white px-5 py-5 text-sm text-black/70">
+            <p className="font-semibold text-black">معاينة رسالة الإدارة</p>
+            <p className="mt-2 line-clamp-4 break-all">{previewAdminLink}</p>
           </div>
         </div>
       </div>
