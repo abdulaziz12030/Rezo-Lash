@@ -14,9 +14,3 @@ Rezo Lash - Hotfix deployment
 - لم يعد middleware يعتمد على crypto، لذلك تم علاج خطأ صفحة الأدمن.
 - تمت إضافة الأعمدة الناقصة مثل lash_removal و lower_lashes و removal_option.
 - تم توحيد الجدول ليتوافق مع المشروع الحالي ومع البيانات القديمة أيضًا.
-
-
-Additional environment variables for email notifications:
-- RESEND_API_KEY
-- BOOKING_NOTIFY_EMAIL
-- EMAIL_FROM

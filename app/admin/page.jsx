@@ -6,21 +6,18 @@ export const dynamic = "force-dynamic";
 function normalizeBooking(row) {
   return {
     id: row.id,
-    name: row.full_name || "",
+    name: row.full_name || row.name || "",
     phone: row.phone || "",
-    service: row.service_name || "",
-    date: row.booking_date || "",
-    time: row.booking_time || "",
-    price: row.service_price ?? 0,
-    deposit: row.deposit_amount ?? 0,
+    service: row.service_name || row.service || "",
+    date: row.booking_date || row.date || "",
+    time: row.booking_time || row.time || "",
+    price: row.service_price ?? row.price ?? 0,
+    deposit: row.deposit_amount ?? row.deposit ?? 0,
     status: row.status || "pending",
     created_at: row.created_at || "",
     style: row.style || "",
     lower_lashes: row.lower_lashes ?? false,
     lash_removal: row.lash_removal ?? false,
-    removal_option: row.removal_option || "no-removal",
-    payment_status: row.payment_status || "unpaid",
-    notes: row.notes || "",
   };
 }
 
@@ -41,12 +38,11 @@ export default async function AdminPage() {
         <div>
           <p className="text-sm uppercase tracking-[0.25em] text-black/45">Admin</p>
           <h1 className="section-title mt-2">لوحة الحجوزات</h1>
-          <p className="mt-2 text-black/60">إدارة الحجوزات، تحديث الحالات، واستعراضها بطريقة أوضح من نفس اللوحة.</p>
+          <p className="mt-2 text-black/60">إدارة الحجوزات، تحديث الحالات، وإرسال رسائل الواتساب للعميلة من نفس اللوحة.</p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <a href="/admin/calendar" className="btn-primary">كالندر المواعيد</a>
-          <a href="/admin/settings" className="btn-gold">إعدادات المواعيد</a>
+        <div className="flex gap-3">
           <a href="/" className="btn-gold">العودة للموقع</a>
+          <a href="/admin/settings" className="btn-gold">إعدادات المواعيد</a>
         </div>
       </div>
       <div className="mt-8"><AdminTable bookings={normalized} /></div>

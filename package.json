@@ -16,11 +16,7 @@
     "next": "14.2.30",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "stripe": "^18.4.0",
-    "resend": "^4.6.0",
-    "@fullcalendar/react": "^6.1.17",
-    "@fullcalendar/daygrid": "^6.1.17",
-    "@fullcalendar/interaction": "^6.1.17"
+    "stripe": "^18.4.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",

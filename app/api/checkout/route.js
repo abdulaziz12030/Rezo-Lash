@@ -12,7 +12,6 @@ import {
   buildCustomerReplyTemplate,
   isPastDateTime,
 } from "@/lib/booking";
-import { sendBookingNotificationEmail } from "@/lib/email";
 
 export async function POST(request) {
   try {
@@ -44,10 +43,17 @@ export async function POST(request) {
 
     const service = getServiceById(serviceId);
     if (!service) {
-      return NextResponse.json({ error: "الخدمة غير موجودة." }, { status: 404 });
+      return NextResponse.json(
+        { error: "الخدمة غير موجودة." },
+        { status: 404 }
+      );
     }
 
-    const totals = calculateBookingTotals(service, { removalOption, lowerLashes });
+    const totals = calculateBookingTotals(service, {
+      removalOption,
+      lowerLashes,
+    });
+
     const styleLabel = getStyleLabel(serviceId, styleId);
     const serviceLabel = getServiceLabel(service);
     const removalLabel = getRemovalLabel(removalOption);
@@ -64,6 +70,7 @@ export async function POST(request) {
       .limit(1);
 
     if (conflictError) throw conflictError;
+
     if (conflicting?.length) {
       return NextResponse.json(
         { error: "هذا الموعد غير متاح، يرجى اختيار وقت آخر." },
@@ -98,23 +105,10 @@ export async function POST(request) {
 
     if (insertError) throw insertError;
 
-    try {
-      await sendBookingNotificationEmail({
-        fullName,
-        phone: phoneNormalized || phone,
-        serviceLabel,
-        styleLabel,
-        removalLabel,
-        date,
-        time: getDisplayTime(time),
-        totalPrice: totals.totalPrice,
-        depositAmount: totals.depositAmount,
-      });
-    } catch (emailError) {
-      console.error("Email notification failed:", emailError);
-    }
-
-    const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "";
+    const origin =
+      request.headers.get("origin") ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "";
 
     const adminLink = buildAdminWhatsAppUrl({
       name: fullName,
@@ -150,7 +144,9 @@ export async function POST(request) {
       removal: removalLabel,
     });
 
-    return NextResponse.json({ url: `${origin}/success?${params.toString()}` });
+    return NextResponse.json({
+      url: `${origin}/success?${params.toString()}`,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error.message || "Booking failed" },
