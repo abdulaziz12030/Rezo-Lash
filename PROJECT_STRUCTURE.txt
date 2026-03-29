@@ -1,0 +1,44 @@
+rezo-lash/
+├── app/
+│   ├── admin/
+│   │   ├── login/
+│   │   │   └── page.jsx
+│   │   ├── settings/
+│   │   │   └── page.jsx
+│   │   └── page.jsx
+│   ├── api/
+│   │   ├── admin-login/
+│   │   │   └── route.js
+│   │   ├── availability/
+│   │   │   └── route.js
+│   │   ├── checkout/
+│   │   │   └── route.js
+│   │   ├── settings/
+│   │   │   └── route.js
+│   │   └── stripe-webhook/
+│   │       └── route.js
+│   ├── booking/
+│   │   └── page.jsx
+│   ├── success/
+│   │   └── page.jsx
+│   ├── globals.css
+│   ├── layout.jsx
+│   └── page.jsx
+├── components/
+│   ├── AdminTable.jsx
+│   ├── BookingForm.jsx
+│   ├── Hero.jsx
+│   ├── Navbar.jsx
+│   └── Services.jsx
+├── lib/
+│   ├── auth.js
+│   ├── booking.js
+│   ├── payments.js
+│   ├── supabaseAdmin.js
+│   └── supabaseClient.js
+├── middleware.js
+├── package.json
+├── postcss.config.js
+├── tailwind.config.js
+├── jsconfig.json
+└── .env.local
