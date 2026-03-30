@@ -57,6 +57,16 @@ body {
   50% { transform: scale(1.03); }
 }
 
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeInLeft {
+  from { opacity: 0; transform: translateX(-28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 .fade-up {
   animation: fadeUp 0.75s ease both;
 }
@@ -67,6 +77,14 @@ body {
 
 .pulse-soft {
   animation: pulseSoft 2.6s ease-in-out infinite;
+}
+
+.fade-in-right {
+  animation: fadeInRight 0.85s ease both;
+}
+
+.fade-in-left {
+  animation: fadeInLeft 0.85s ease both;
 }
 
 .hero-card,
@@ -117,7 +135,6 @@ body {
   color: white;
   font-size: 1.4rem;
 }
-
 
 .style-card {
   @apply cursor-pointer rounded-2xl border border-black/10 bg-white px-4 py-4 text-center transition hover:border-gold/60 hover:-translate-y-0.5;
@@ -172,54 +189,74 @@ body {
   accent-color: #c9a56a;
 }
 
-
-.slot-btn{@apply rounded-2xl border px-4 py-3 text-center text-sm transition;}
-.slot-btn-open{@apply border-black/10 bg-white hover:border-gold/60 hover:-translate-y-0.5;}
-.slot-btn-active{@apply border-gold bg-gold/20;}
-.slot-btn-booked{@apply border-black/10 bg-black/5 text-black/40 cursor-not-allowed opacity-70;}
-
-
-@keyframes fadeInRight {
-  from { opacity: 0; transform: translateX(28px); }
-  to { opacity: 1; transform: translateX(0); }
+.slot-btn {
+  @apply rounded-2xl border px-4 py-3 text-center text-sm transition;
 }
 
-@keyframes fadeInLeft {
-  from { opacity: 0; transform: translateX(-28px); }
-  to { opacity: 1; transform: translateX(0); }
+.slot-btn-open {
+  @apply border-black/10 bg-white hover:border-gold/60 hover:-translate-y-0.5;
 }
 
-.fade-in-right { animation: fadeInRight 0.85s ease both; }
-.fade-in-left { animation: fadeInLeft 0.85s ease both; }
+.slot-btn-active {
+  @apply border-gold bg-gold/20;
+}
+
+.slot-btn-booked {
+  @apply border-black/10 bg-black/5 text-black/40 cursor-not-allowed opacity-70;
+}
+
 .mobile-admin-btn {
   @apply inline-flex items-center justify-center rounded-full border border-gold/50 bg-[#fff7ef] px-4 py-2 text-sm font-medium text-ink shadow-sm;
 }
+
 .selected-service-pill {
   @apply inline-flex rounded-full border border-gold/30 bg-[#fff7ef] px-4 py-2 text-sm font-medium text-ink;
 }
+
 .notice-warning {
   @apply rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900;
 }
+
 .notice-success {
   @apply rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800;
 }
+
 .status-badge {
   @apply inline-flex rounded-full px-3 py-1 text-sm font-semibold;
 }
-.status-pending { @apply bg-amber-100 text-amber-900; }
-.status-confirmed { @apply bg-emerald-100 text-emerald-800; }
-.status-completed { @apply bg-sky-100 text-sky-800; }
-.status-cancelled { @apply bg-rose-100 text-rose-800; }
-.status-archived { @apply bg-slate-100 text-slate-700; }
+
+.status-pending {
+  @apply bg-amber-100 text-amber-900;
+}
+
+.status-confirmed {
+  @apply bg-emerald-100 text-emerald-800;
+}
+
+.status-completed {
+  @apply bg-sky-100 text-sky-800;
+}
+
+.status-cancelled {
+  @apply bg-red-100 text-red-800;
+}
+
+.status-archived {
+  @apply bg-slate-100 text-slate-700;
+}
+
 .calendar-day {
   @apply min-h-[160px] rounded-2xl border border-black/5 bg-white p-3;
 }
+
 .calendar-day-muted {
   @apply opacity-45;
 }
+
 .calendar-day-today {
   @apply ring-2 ring-gold/40;
 }
+
 .calendar-pill {
   @apply flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-medium;
 }
