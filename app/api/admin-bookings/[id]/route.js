@@ -1,6 +1,33 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { getServiceById, getServiceLabel } from "@/lib/booking";
+import {
+  getServiceById,
+  getServiceLabel,
+  getStyleLabel,
+  calculateBookingTotals,
+} from "@/lib/booking";
+
+function normalizeBooking(row) {
+  return {
+    id: row.id,
+    name: row.full_name || "",
+    phone: row.phone || "",
+    service: row.service_name || "",
+    service_id: row.service_id || "",
+    date: row.booking_date || "",
+    time: row.booking_time || "",
+    price: row.service_price ?? 0,
+    deposit: row.deposit_amount ?? 0,
+    status: row.status || "pending",
+    created_at: row.created_at || "",
+    style: row.style || "",
+    lower_lashes: row.lower_lashes ?? false,
+    lash_removal: row.lash_removal ?? false,
+    removal_option: row.removal_option || "no-removal",
+    payment_status: row.payment_status || "unpaid",
+    notes: row.notes || "",
+  };
+}
 
 export async function PATCH(request, { params }) {
   try {
@@ -16,10 +43,26 @@ export async function PATCH(request, { params }) {
 
     if (currentError) throw currentError;
 
-    const nextService = body.serviceId ? getServiceById(body.serviceId) : null;
+    const nextService = body.serviceId
+      ? getServiceById(body.serviceId)
+      : getServiceById(current.service_id);
+
     const bookingDate = body.date || current.booking_date;
     const bookingTime = body.time || current.booking_time;
     const status = body.status || current.status;
+    const paymentStatus = body.paymentStatus || current.payment_status || "unpaid";
+
+    const lowerLashes =
+      typeof body.lowerLashes === "boolean"
+        ? body.lowerLashes
+        : Boolean(current.lower_lashes);
+
+    const removalOption =
+      body.removalOption ||
+      current.removal_option ||
+      (current.lash_removal ? "needs-removal" : "no-removal");
+
+    const styleId = body.styleId || null;
 
     const { data: conflicting, error: conflictingError } = await supabase
       .from("bookings")
@@ -39,27 +82,33 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    const parsedPrice = Number(body.price);
-    const parsedDeposit = Number(body.deposit);
+    const totals = calculateBookingTotals(nextService, {
+      lowerLashes,
+      removalOption,
+    });
 
     const payload = {
       booking_date: bookingDate,
       booking_time: bookingTime,
       status,
-      service_price: Number.isFinite(parsedPrice)
-        ? parsedPrice
-        : (current.service_price ?? 0),
-      deposit_amount: Number.isFinite(parsedDeposit)
-        ? parsedDeposit
-        : (current.deposit_amount ?? 0),
+      payment_status: paymentStatus,
+      service_price: totals.totalPrice,
+      deposit_amount: totals.depositAmount,
+      lower_lashes: lowerLashes,
+      lash_removal: removalOption === "needs-removal",
+      removal_option: removalOption,
+      notes: body.notes ?? current.notes ?? "",
     };
 
     if (nextService) {
       payload.service_id = nextService.id;
       payload.service_name = getServiceLabel(nextService);
+    }
 
-      if (!Number.isFinite(parsedPrice)) payload.service_price = nextService.price;
-      if (!Number.isFinite(parsedDeposit)) payload.deposit_amount = nextService.deposit;
+    if (styleId && nextService?.id) {
+      payload.style = getStyleLabel(nextService.id, styleId);
+    } else if (body.styleId === "" || body.styleId === null) {
+      payload.style = "";
     }
 
     const { data: updated, error: updateError } = await supabase
@@ -71,26 +120,7 @@ export async function PATCH(request, { params }) {
 
     if (updateError) throw updateError;
 
-    const normalized = {
-      id: updated.id,
-      name: updated.full_name || "",
-      phone: updated.phone || "",
-      service: updated.service_name || "",
-      date: updated.booking_date || "",
-      time: updated.booking_time || "",
-      price: updated.service_price ?? 0,
-      deposit: updated.deposit_amount ?? 0,
-      status: updated.status || "pending",
-      created_at: updated.created_at || "",
-      style: updated.style || "",
-      lower_lashes: updated.lower_lashes ?? false,
-      lash_removal: updated.lash_removal ?? false,
-      removal_option: updated.removal_option || "no-removal",
-      payment_status: updated.payment_status || "unpaid",
-      notes: updated.notes || "",
-    };
-
-    return NextResponse.json({ booking: normalized });
+    return NextResponse.json({ booking: normalizeBooking(updated) });
   } catch (error) {
     return NextResponse.json(
       { error: error.message || "Failed to update booking" },
