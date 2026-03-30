@@ -2,6 +2,8 @@ import AdminTable from "@/components/AdminTable";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 function normalizeBooking(row) {
   return {
@@ -19,7 +21,8 @@ function normalizeBooking(row) {
     style: row.style || "",
     lower_lashes: row.lower_lashes ?? false,
     lash_removal: row.lash_removal ?? false,
-    removal_option: row.removal_option || (row.lash_removal ? "needs-removal" : "no-removal"),
+    removal_option:
+      row.removal_option || (row.lash_removal ? "needs-removal" : "no-removal"),
     payment_status: row.payment_status || "unpaid",
     notes: row.notes || "",
   };
@@ -33,7 +36,9 @@ export default async function AdminPage() {
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    throw new Error(error.message);
+  }
 
   const normalized = (data || []).map(normalizeBooking);
 
@@ -50,7 +55,6 @@ export default async function AdminPage() {
 
         <div className="flex flex-wrap gap-3">
           <a href="/" className="btn-gold">العودة للموقع</a>
-          <a href="/admin/settings" className="btn-gold">إعدادات المواعيد</a>
         </div>
       </div>
 
