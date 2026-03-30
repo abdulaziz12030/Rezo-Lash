@@ -1,149 +1,156 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DEFAULT_TIME_SLOTS, SERVICES, buildCustomerWhatsAppUrl, getDisplayTime, getServiceLabel, isArchivedStatus } from "@/lib/booking";
+import {
+  SERVICES,
+  DEFAULT_TIME_SLOTS,
+  REMOVAL_OPTIONS,
+  getServiceById,
+  getServiceLabel,
+  getStyleOptions,
+  getStyleLabel,
+  calculateBookingTotals,
+  isArchivedStatus,
+  buildCustomerWhatsAppUrl,
+  getDisplayTime,
+} from "@/lib/booking";
 
-const STATUS_META = {
-  pending: { label: "تحت الإجراء", badge: "status-pending", dot: "bg-amber-500" },
-  confirmed: { label: "مؤكد", badge: "status-confirmed", dot: "bg-emerald-500" },
-  completed: { label: "مكتمل", badge: "status-completed", dot: "bg-sky-500" },
-  cancelled: { label: "ملغي", badge: "status-cancelled", dot: "bg-rose-500" },
-  archived: { label: "مؤرشف", badge: "status-archived", dot: "bg-slate-500" },
+const STATUS_LABELS = {
+  pending: "تحت الإجراء",
+  confirmed: "مؤكد",
+  completed: "مكتمل",
+  cancelled: "ملغي",
+  archived: "مؤرشف",
 };
 
-function normalizeDate(date) {
-  return String(date || "").split("T")[0];
-}
+const PAYMENT_LABELS = {
+  unpaid: "غير مدفوع",
+  paid: "مدفوع",
+};
 
 function isRecent(createdAt) {
   if (!createdAt) return false;
-  const diff = Date.now() - new Date(createdAt).getTime();
-  return diff < 1000 * 60 * 60 * 24;
+  return Date.now() - new Date(createdAt).getTime() < 1000 * 60 * 60 * 18;
 }
 
-function getStatusMeta(status) {
-  return STATUS_META[String(status || "").toLowerCase()] || STATUS_META.pending;
+function formatDateInput(value) {
+  return value || "";
 }
 
-function formatDateHeading(dateString) {
-  if (!dateString) return "بدون تاريخ";
-  return new Intl.DateTimeFormat("ar-SA", { dateStyle: "full" }).format(new Date(`${dateString}T00:00:00`));
+function formatCurrency(value) {
+  return `${Number(value || 0)} SAR`;
 }
 
-function getMonthKey(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+function getStatusClass(status) {
+  switch (status) {
+    case "confirmed":
+      return "status-badge status-confirmed";
+    case "completed":
+      return "status-badge status-completed";
+    case "cancelled":
+      return "status-badge status-cancelled";
+    case "archived":
+      return "status-badge status-archived";
+    default:
+      return "status-badge status-pending";
+  }
 }
 
-function sameMonth(dateString, focusDate) {
-  if (!dateString) return false;
-  return getMonthKey(new Date(`${dateString}T00:00:00`)) === getMonthKey(focusDate);
+function getServiceIdFromBooking(booking) {
+  if (booking.service_id) return booking.service_id;
+  const found = SERVICES.find((s) => getServiceLabel(s) === booking.service);
+  return found?.id || SERVICES[0]?.id || "classic";
 }
 
-function sameWeek(dateString, focusDate) {
-  if (!dateString) return false;
-  const date = new Date(`${dateString}T00:00:00`);
-  const start = new Date(focusDate);
-  const day = (start.getDay() + 6) % 7;
-  start.setDate(start.getDate() - day);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 7);
-  return date >= start && date < end;
-}
-
-function buildCalendarCells(focusDate) {
-  const monthStart = new Date(focusDate.getFullYear(), focusDate.getMonth(), 1);
-  const gridStart = new Date(monthStart);
-  const offset = (monthStart.getDay() + 6) % 7;
-  gridStart.setDate(monthStart.getDate() - offset);
-  return Array.from({ length: 42 }, (_, index) => {
-    const day = new Date(gridStart);
-    day.setDate(gridStart.getDate() + index);
-    return day;
-  });
-}
-
-function dayKey(date) {
-  return date.toISOString().split("T")[0];
+function getInitialStyleId(serviceId, bookingStyle) {
+  const options = getStyleOptions(serviceId);
+  if (!options.length) return "";
+  const matched = options.find((opt) => bookingStyle?.includes(opt.label));
+  return matched?.id || options[0].id;
 }
 
 export default function AdminTable({ bookings }) {
-  const [items, setItems] = useState(bookings);
+  const [items, setItems] = useState(bookings || []);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [serviceFilter, setServiceFilter] = useState("all");
+  const [paymentFilter, setPaymentFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [onlyNew, setOnlyNew] = useState(false);
+  const [expandedId, setExpandedId] = useState("");
   const [savingId, setSavingId] = useState("");
   const [refreshing, setRefreshing] = useState(false);
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState("active");
-  const [calendarMode, setCalendarMode] = useState("month");
-  const [focusDate, setFocusDate] = useState(new Date());
-
-  async function refreshBookings(showSpinner = true) {
-    if (showSpinner) setRefreshing(true);
-    try {
-      const response = await fetch("/api/admin-bookings", { cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "تعذر تحديث البيانات");
-      setItems(data.bookings || []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      if (showSpinner) setRefreshing(false);
-    }
-  }
 
   useEffect(() => {
-    const interval = setInterval(() => refreshBookings(false), 15000);
-    return () => clearInterval(interval);
-  }, []);
+    setItems(bookings || []);
+  }, [bookings]);
 
-  const stats = useMemo(() => ({
-    total: items.length,
-    pending: items.filter((b) => b.status === "pending").length,
-    confirmed: items.filter((b) => b.status === "confirmed").length,
-    today: items.filter((b) => normalizeDate(b.date) === new Date().toISOString().split("T")[0]).length,
-    cancelled: items.filter((b) => b.status === "cancelled").length,
-  }), [items]);
+  const stats = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    return {
+      total: items.length,
+      pending: items.filter((b) => b.status === "pending").length,
+      confirmed: items.filter((b) => b.status === "confirmed").length,
+      cancelled: items.filter((b) => b.status === "cancelled").length,
+      today: items.filter((b) => b.date === today).length,
+      newOnes: items.filter((b) => b.status === "pending" && isRecent(b.created_at)).length,
+    };
+  }, [items]);
 
   const filtered = useMemo(() => {
     return items.filter((booking) => {
-      const archived = isArchivedStatus(booking.status);
-      if (filter === "active" && archived) return false;
-      if (filter === "archive" && !archived) return false;
-      if (filter !== "all") {
-        if (filter === "new" && !(booking.status === "pending" && isRecent(booking.created_at))) return false;
-        if (["pending", "confirmed", "cancelled", "completed"].includes(filter) && booking.status !== filter) return false;
-      }
+      const haystack = [
+        booking.name,
+        booking.phone,
+        booking.service,
+        booking.date,
+        booking.time,
+        booking.status,
+        booking.style,
+        booking.notes,
+      ]
+        .join(" ")
+        .toLowerCase();
 
-      const haystack = [booking.name, booking.phone, booking.service, booking.date, booking.time, booking.status].join(" ").toLowerCase();
-      return haystack.includes(query.toLowerCase());
+      if (query && !haystack.includes(query.toLowerCase())) return false;
+      if (statusFilter !== "all" && booking.status !== statusFilter) return false;
+      if (paymentFilter !== "all" && (booking.payment_status || "unpaid") !== paymentFilter) return false;
+
+      const bookingServiceId = getServiceIdFromBooking(booking);
+      if (serviceFilter !== "all" && bookingServiceId !== serviceFilter) return false;
+
+      if (dateFrom && booking.date && booking.date < dateFrom) return false;
+      if (dateTo && booking.date && booking.date > dateTo) return false;
+
+      if (onlyNew && !(booking.status === "pending" && isRecent(booking.created_at))) return false;
+
+      return true;
     });
-  }, [items, query, filter]);
+  }, [items, query, statusFilter, paymentFilter, serviceFilter, dateFrom, dateTo, onlyNew]);
 
-  const grouped = useMemo(() => {
+  const historyByPhone = useMemo(() => {
     const map = new Map();
-    filtered.forEach((booking) => {
-      const key = normalizeDate(booking.date);
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(booking);
-    });
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [filtered]);
-
-  const calendarBookings = useMemo(() => {
-    return items.filter((booking) => {
-      if (calendarMode === "week") return sameWeek(normalizeDate(booking.date), focusDate);
-      return sameMonth(normalizeDate(booking.date), focusDate);
-    });
-  }, [items, calendarMode, focusDate]);
-
-  const calendarByDay = useMemo(() => {
-    const map = new Map();
-    calendarBookings.forEach((booking) => {
-      const key = normalizeDate(booking.date);
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(booking);
-    });
+    for (const item of items) {
+      const key = item.phone || item.name;
+      map.set(key, (map.get(key) || 0) + 1);
+    }
     return map;
-  }, [calendarBookings]);
+  }, [items]);
+
+  async function refreshBookings() {
+    setRefreshing(true);
+    try {
+      const res = await fetch("/api/admin-bookings", { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "تعذر تحديث البيانات");
+      setItems(data.bookings || []);
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   async function updateBooking(id, patch) {
     setSavingId(id);
@@ -151,10 +158,12 @@ export default function AdminTable({ bookings }) {
       const response = await fetch(`/api/admin-bookings/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch)
+        body: JSON.stringify(patch),
       });
+
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Update failed");
+      if (!response.ok) throw new Error(data.error || "تعذر حفظ التعديلات");
+
       setItems((prev) => prev.map((item) => (item.id === id ? data.booking : item)));
     } catch (error) {
       alert(error.message);
@@ -163,203 +172,536 @@ export default function AdminTable({ bookings }) {
     }
   }
 
-  function shiftCalendar(direction) {
-    const next = new Date(focusDate);
-    if (calendarMode === "week") next.setDate(next.getDate() + (direction * 7));
-    else next.setMonth(next.getMonth() + direction);
-    setFocusDate(next);
-  }
-
-  const calendarCells = buildCalendarCells(focusDate);
-
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <StatCard label="كل الحجوزات" value={stats.total} />
         <StatCard label="تحت الإجراء" value={stats.pending} />
         <StatCard label="المؤكدة" value={stats.confirmed} />
-        <StatCard label="الملغية" value={stats.cancelled} />
-        <StatCard label="حجوزات اليوم" value={stats.today} />
+        <StatCard label="الملغاة" value={stats.cancelled} />
+        <StatCard label="اليوم" value={stats.today} />
+        <StatCard label="الجديدة" value={stats.newOnes} />
       </div>
 
       <div className="card-luxe p-4 md:p-5">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
-            <input className="input-luxe md:max-w-sm" placeholder="بحث بالاسم أو الجوال أو الخدمة" value={query} onChange={(e) => setQuery(e.target.value)} />
-            <div className="flex flex-wrap gap-2">
-              <FilterButton active={filter === "active"} onClick={() => setFilter("active")}>الحجوزات الحالية</FilterButton>
-              <FilterButton active={filter === "new"} onClick={() => setFilter("new")}>الجديدة</FilterButton>
-              <FilterButton active={filter === "confirmed"} onClick={() => setFilter("confirmed")}>المؤكدة</FilterButton>
-              <FilterButton active={filter === "pending"} onClick={() => setFilter("pending")}>تحت الإجراء</FilterButton>
-              <FilterButton active={filter === "archive"} onClick={() => setFilter("archive")}>الأرشيف</FilterButton>
-            </div>
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">أدوات الفلترة والتحكم</h2>
+            <p className="mt-1 text-sm text-black/55">
+              فلترة حسب الحالة، الخدمة، الدفع، الفترة الزمنية، والحجوزات الجديدة.
+            </p>
           </div>
-          <button type="button" className="btn-primary min-w-[170px]" onClick={() => refreshBookings(true)}>
-            {refreshing ? "جارٍ التحديث..." : "تحديث لوحة الحجوزات"}
+
+          <button
+            type="button"
+            onClick={refreshBookings}
+            className="btn-primary"
+            disabled={refreshing}
+          >
+            {refreshing ? "جارٍ التحديث..." : "تحديث البيانات"}
           </button>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <input
+            className="input-luxe xl:col-span-2"
+            placeholder="بحث بالاسم أو الجوال أو الملاحظات"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+
+          <select
+            className="input-luxe"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">كل الحالات</option>
+            <option value="pending">تحت الإجراء</option>
+            <option value="confirmed">مؤكد</option>
+            <option value="completed">مكتمل</option>
+            <option value="cancelled">ملغي</option>
+            <option value="archived">مؤرشف</option>
+          </select>
+
+          <select
+            className="input-luxe"
+            value={serviceFilter}
+            onChange={(e) => setServiceFilter(e.target.value)}
+          >
+            <option value="all">كل الخدمات</option>
+            {SERVICES.map((service) => (
+              <option key={service.id} value={service.id}>
+                {service.nameAr}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="input-luxe"
+            value={paymentFilter}
+            onChange={(e) => setPaymentFilter(e.target.value)}
+          >
+            <option value="all">كل حالات الدفع</option>
+            <option value="unpaid">غير مدفوع</option>
+            <option value="paid">مدفوع</option>
+          </select>
+
+          <label className="soft-check">
+            <input
+              type="checkbox"
+              checked={onlyNew}
+              onChange={(e) => setOnlyNew(e.target.checked)}
+            />
+            <span className="text-sm font-medium">إظهار الجديدة فقط</span>
+          </label>
+        </div>
+
+        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <label className="text-sm">
+            <span className="mb-2 block text-black/55">من تاريخ</span>
+            <input
+              type="date"
+              className="input-luxe"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </label>
+
+          <label className="text-sm">
+            <span className="mb-2 block text-black/55">إلى تاريخ</span>
+            <input
+              type="date"
+              className="input-luxe"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </label>
+
+          <button
+            type="button"
+            className="btn-gold self-end"
+            onClick={() => {
+              setQuery("");
+              setStatusFilter("all");
+              setServiceFilter("all");
+              setPaymentFilter("all");
+              setDateFrom("");
+              setDateTo("");
+              setOnlyNew(false);
+            }}
+          >
+            إعادة ضبط الفلاتر
+          </button>
+
+          <div className="self-end rounded-2xl border border-black/5 bg-black/[0.03] px-4 py-3 text-sm text-black/60">
+            النتائج الحالية: <strong className="text-black">{filtered.length}</strong>
+          </div>
         </div>
       </div>
 
-      {items.some((b) => b.status === "pending" && isRecent(b.created_at)) ? (
+      {stats.newOnes > 0 ? (
         <div className="card-luxe p-5">
-          <p className="text-sm uppercase tracking-[0.25em] text-black/45">Notifications</p>
-          <div className="mt-4 space-y-3">
-            {items.filter((b) => b.status === "pending" && isRecent(b.created_at)).slice(0, 5).map((b) => (
-              <div key={b.id} className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
-                <strong className="text-amber-900">حجز جديد يحتاج متابعة</strong>
-                <p className="mt-1 text-amber-800">{b.name} — {b.service} — {b.date} — {getDisplayTime(b.time)}</p>
-              </div>
-            ))}
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm uppercase tracking-[0.25em] text-black/45">Notifications</p>
+              <h3 className="mt-1 text-lg font-semibold">تنبيهات الحجوزات الجديدة</h3>
+            </div>
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-900">
+              {stats.newOnes} جديد
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {items
+              .filter((b) => b.status === "pending" && isRecent(b.created_at))
+              .slice(0, 5)
+              .map((b) => (
+                <div
+                  key={b.id}
+                  className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm"
+                >
+                  <strong className="text-amber-900">حجز جديد</strong>
+                  <p className="mt-1 text-amber-800">
+                    {b.name} — {b.service} — {b.date} — {getDisplayTime(b.time)}
+                  </p>
+                </div>
+              ))}
           </div>
         </div>
       ) : null}
 
-      <div className="card-luxe p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-black/45">ريم - التقويم</p>
-            <h3 className="mt-2 text-2xl font-semibold">كالندر المواعيد</h3>
-            <p className="mt-2 text-sm text-black/60">عرض مرئي لجميع مواعيد الأخصائية ريم مع تلوين واضح حسب الحالة.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <FilterButton active={calendarMode === "month"} onClick={() => setCalendarMode("month")}>عرض الشهر</FilterButton>
-            <FilterButton active={calendarMode === "week"} onClick={() => setCalendarMode("week")}>عرض الأسبوع</FilterButton>
-          </div>
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <button type="button" className="btn-gold px-4 py-2" onClick={() => shiftCalendar(-1)}>السابق</button>
-            <button type="button" className="btn-gold px-4 py-2" onClick={() => setFocusDate(new Date())}>اليوم</button>
-            <button type="button" className="btn-gold px-4 py-2" onClick={() => shiftCalendar(1)}>التالي</button>
-          </div>
-          <p className="text-lg font-semibold">{new Intl.DateTimeFormat("ar-SA", { month: "long", year: "numeric" }).format(focusDate)}</p>
-        </div>
-
-        <div className="mt-5 grid gap-2 rounded-3xl bg-[#f7f2eb] p-3 md:grid-cols-7">
-          {["الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"].map((day) => (
-            <div key={day} className="rounded-2xl bg-white/70 px-3 py-2 text-center text-sm font-semibold text-black/55">{day}</div>
-          ))}
-
-          {calendarCells.map((day) => {
-            const key = dayKey(day);
-            const dailyBookings = calendarByDay.get(key) || [];
-            const isCurrentMonth = day.getMonth() === focusDate.getMonth();
-            const isToday = key === new Date().toISOString().split("T")[0];
-            return (
-              <div key={key} className={`calendar-day ${!isCurrentMonth ? "calendar-day-muted" : ""} ${isToday ? "calendar-day-today" : ""}`}>
-                <div className="mb-2 flex items-center justify-between">
-                  <strong>{day.getDate()}</strong>
-                  <span className="text-[11px] text-black/40">{dailyBookings.length} موعد</span>
-                </div>
-
-                <div className="space-y-2">
-                  {dailyBookings.slice(0, calendarMode === "week" ? 10 : 4).map((booking) => {
-                    const meta = getStatusMeta(booking.status);
-                    return (
-                      <div key={booking.id} className={`calendar-pill ${meta.badge}`}>
-                        <span className={`inline-block h-2.5 w-2.5 rounded-full ${meta.dot}`} />
-                        <span className="truncate">{getDisplayTime(booking.time)} — {booking.name}</span>
-                      </div>
-                    );
-                  })}
-                  {dailyBookings.length > (calendarMode === "week" ? 10 : 4) ? (
-                    <p className="text-xs text-black/45">+ {dailyBookings.length - (calendarMode === "week" ? 10 : 4)} مواعيد أخرى</p>
-                  ) : null}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-3 text-sm">
-          {Object.entries(STATUS_META).map(([key, meta]) => (
-            <div key={key} className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2">
-              <span className={`inline-block h-2.5 w-2.5 rounded-full ${meta.dot}`} />
-              <span>{meta.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       <div className="space-y-4">
-        {grouped.map(([date, bookingsForDate]) => (
-          <section key={date} className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-lg font-semibold">{formatDateHeading(date)}</h3>
-              <span className="text-sm text-black/45">{bookingsForDate.length} موعد</span>
-            </div>
+        {filtered.length === 0 ? (
+          <div className="card-luxe p-8 text-center text-black/55">
+            لا توجد نتائج مطابقة للفلاتر الحالية.
+          </div>
+        ) : null}
 
-            {bookingsForDate.map((booking) => {
-              const meta = getStatusMeta(booking.status);
-              return (
-                <div key={booking.id} className="card-luxe p-5">
-                  <div className="grid gap-4 lg:grid-cols-[1fr_1.15fr]">
-                    <div>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-xl font-semibold">{booking.name}</h3>
-                            {booking.status === "pending" && isRecent(booking.created_at) ? <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">جديد</span> : null}
-                          </div>
-                          <p className="text-sm text-black/55">{booking.phone}</p>
-                        </div>
-                        <span className={`status-badge ${meta.badge}`}>{meta.label}</span>
-                      </div>
-
-                      <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                        <Info label="الخدمة" value={booking.service} />
-                        <Info label="الموعد" value={`${booking.date} — ${getDisplayTime(booking.time)}`} />
-                        <Info label="السعر" value={`${booking.price || 0} SAR`} />
-                        <Info label="العربون" value={`${booking.deposit || 0} SAR`} />
-                        <Info label="الرسمة" value={booking.style} />
-                        <Info label="الإزالة / السفلي" value={`${booking.lash_removal ? "إزالة قديمة" : "لا"} / ${booking.lower_lashes ? "نعم" : "لا"}`} />
-                      </div>
-                    </div>
-
-                    <form className="grid gap-3 sm:grid-cols-2" onSubmit={(e) => {
-                      e.preventDefault();
-                      const formData = new FormData(e.currentTarget);
-                      updateBooking(booking.id, {
-                        serviceId: formData.get("serviceId"),
-                        date: formData.get("date"),
-                        time: formData.get("time"),
-                        price: Number(formData.get("price")),
-                        deposit: Number(formData.get("deposit")),
-                        status: formData.get("status")
-                      });
-                    }}>
-                      <label className="text-sm"><span className="mb-2 block">الخدمة</span><select name="serviceId" defaultValue={SERVICES.find((s) => getServiceLabel(s) === booking.service)?.id || SERVICES[0].id} className="input-luxe">{SERVICES.map((service) => <option key={service.id} value={service.id}>{getServiceLabel(service)}</option>)}</select></label>
-                      <label className="text-sm"><span className="mb-2 block">التاريخ</span><input type="date" name="date" defaultValue={normalizeDate(booking.date)} className="input-luxe" /></label>
-                      <label className="text-sm"><span className="mb-2 block">الوقت</span><select name="time" defaultValue={booking.time} className="input-luxe">{DEFAULT_TIME_SLOTS.map((slot) => <option key={slot} value={slot}>{getDisplayTime(slot)}</option>)}</select></label>
-                      <label className="text-sm"><span className="mb-2 block">الحالة</span><select name="status" defaultValue={booking.status} className="input-luxe"><option value="pending">تحت الإجراء</option><option value="confirmed">مؤكد</option><option value="completed">مكتمل</option><option value="cancelled">ملغي</option><option value="archived">مؤرشف</option></select></label>
-                      <label className="text-sm"><span className="mb-2 block">السعر</span><input type="number" name="price" defaultValue={booking.price || 0} className="input-luxe" /></label>
-                      <label className="text-sm"><span className="mb-2 block">العربون</span><input type="number" name="deposit" defaultValue={booking.deposit || 0} className="input-luxe" /></label>
-                      <div className="sm:col-span-2 flex flex-wrap gap-2">
-                        <button type="submit" className="btn-primary" disabled={savingId === booking.id}>{savingId === booking.id ? "جارٍ الحفظ..." : "حفظ التعديل"}</button>
-                        {!isArchivedStatus(booking.status) ? <button type="button" className="btn-gold" onClick={() => updateBooking(booking.id, { status: "archived" })}>نقل إلى الأرشيف</button> : <button type="button" className="btn-gold" onClick={() => updateBooking(booking.id, { status: "confirmed" })}>استعادة الحجز</button>}
-                        <a href={buildCustomerWhatsAppUrl(booking.phone, { name: booking.name, serviceLabel: booking.service, date: booking.date, time: getDisplayTime(booking.time), depositAmount: booking.deposit })} target="_blank" rel="noreferrer" className="btn-gold">واتساب العميلة</a>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              );
-            })}
-          </section>
+        {filtered.map((booking) => (
+          <BookingCard
+            key={booking.id}
+            booking={booking}
+            expanded={expandedId === booking.id}
+            onToggle={() =>
+              setExpandedId((prev) => (prev === booking.id ? "" : booking.id))
+            }
+            onUpdate={updateBooking}
+            saving={savingId === booking.id}
+            historyCount={historyByPhone.get(booking.phone || booking.name) || 1}
+          />
         ))}
-
-        {grouped.length === 0 ? <div className="card-luxe p-8 text-center text-black/55">لا توجد نتائج مطابقة.</div> : null}
       </div>
     </div>
   );
 }
 
+function BookingCard({ booking, expanded, onToggle, onUpdate, saving, historyCount }) {
+  const initialServiceId = getServiceIdFromBooking(booking);
+
+  const [serviceId, setServiceId] = useState(initialServiceId);
+  const [date, setDate] = useState(formatDateInput(booking.date));
+  const [time, setTime] = useState(booking.time || DEFAULT_TIME_SLOTS[0]);
+  const [status, setStatus] = useState(booking.status || "pending");
+  const [paymentStatus, setPaymentStatus] = useState(booking.payment_status || "unpaid");
+  const [notes, setNotes] = useState(booking.notes || "");
+  const [lowerLashes, setLowerLashes] = useState(Boolean(booking.lower_lashes));
+  const [removalOption, setRemovalOption] = useState(
+    booking.removal_option || (booking.lash_removal ? "needs-removal" : "no-removal")
+  );
+  const [styleId, setStyleId] = useState(
+    getInitialStyleId(initialServiceId, booking.style)
+  );
+
+  useEffect(() => {
+    const options = getStyleOptions(serviceId);
+    if (!options.length) {
+      setStyleId("");
+      return;
+    }
+    if (!options.find((item) => item.id === styleId)) {
+      setStyleId(options[0].id);
+    }
+  }, [serviceId, styleId]);
+
+  const service = getServiceById(serviceId);
+  const styleOptions = getStyleOptions(serviceId);
+
+  const totals = useMemo(() => {
+    return calculateBookingTotals(service, {
+      lowerLashes,
+      removalOption,
+    });
+  }, [service, lowerLashes, removalOption]);
+
+  const statusLabel = STATUS_LABELS[booking.status] || booking.status;
+  const serviceLabel = service ? getServiceLabel(service) : booking.service;
+  const styleLabel = styleId ? getStyleLabel(serviceId, styleId) : booking.style;
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+
+    await onUpdate(booking.id, {
+      serviceId,
+      date,
+      time,
+      status,
+      paymentStatus,
+      notes,
+      lowerLashes,
+      removalOption,
+      styleId,
+    });
+  }
+
+  async function quickStatus(nextStatus) {
+    await onUpdate(booking.id, { status: nextStatus });
+  }
+
+  return (
+    <div className="card-luxe overflow-hidden">
+      <div className="border-b border-black/5 p-4 md:p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <h3 className="text-xl font-semibold">{booking.name}</h3>
+
+              <span className={getStatusClass(booking.status)}>
+                {statusLabel}
+              </span>
+
+              {(booking.payment_status || "unpaid") === "paid" ? (
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                  مدفوع
+                </span>
+              ) : (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                  غير مدفوع
+                </span>
+              )}
+
+              {booking.status === "pending" && isRecent(booking.created_at) ? (
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+                  جديد
+                </span>
+              ) : null}
+            </div>
+
+            <p className="text-sm text-black/55">{booking.phone}</p>
+            <p className="mt-1 text-xs text-black/45">
+              سجل العميلة: {historyCount} حجز
+            </p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <Info label="الخدمة" value={booking.service} />
+              <Info label="الرسمة" value={booking.style || "-"} />
+              <Info label="الموعد" value={`${booking.date} — ${getDisplayTime(booking.time)}`} />
+              <Info label="السعر / العربون" value={`${formatCurrency(booking.price)} / ${formatCurrency(booking.deposit)}`} />
+            </div>
+
+            {(booking.notes || "").trim() ? (
+              <div className="mt-3 rounded-2xl border border-black/5 bg-black/[0.03] px-4 py-3 text-sm text-black/70">
+                <strong className="block mb-1 text-black">ملاحظات:</strong>
+                {booking.notes}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex flex-wrap gap-2 xl:max-w-[340px] xl:justify-end">
+            {booking.status !== "confirmed" ? (
+              <button type="button" className="btn-primary" onClick={() => quickStatus("confirmed")} disabled={saving}>
+                تأكيد
+              </button>
+            ) : null}
+
+            {booking.status !== "cancelled" ? (
+              <button type="button" className="btn-gold" onClick={() => quickStatus("cancelled")} disabled={saving}>
+                إلغاء
+              </button>
+            ) : null}
+
+            {booking.status !== "archived" ? (
+              <button type="button" className="btn-gold" onClick={() => quickStatus("archived")} disabled={saving}>
+                أرشفة
+              </button>
+            ) : (
+              <button type="button" className="btn-gold" onClick={() => quickStatus("confirmed")} disabled={saving}>
+                استعادة
+              </button>
+            )}
+
+            <a
+              href={buildCustomerWhatsAppUrl(booking.phone, {
+                name: booking.name,
+                serviceLabel: booking.service,
+                date: booking.date,
+                time: getDisplayTime(booking.time),
+                depositAmount: booking.deposit,
+              })}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-gold"
+            >
+              واتساب
+            </a>
+
+            <button type="button" className="btn-primary" onClick={onToggle}>
+              {expanded ? "إغلاق التحرير" : "تحرير الموعد"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {expanded ? (
+        <form onSubmit={handleSubmit} className="p-4 md:p-5">
+          <div className="mb-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <label className="text-sm">
+              <span className="mb-2 block text-black/55">الخدمة</span>
+              <select
+                className="input-luxe"
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value)}
+              >
+                {SERVICES.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.nameAr}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-sm">
+              <span className="mb-2 block text-black/55">الرسمة</span>
+              <select
+                className="input-luxe"
+                value={styleId}
+                onChange={(e) => setStyleId(e.target.value)}
+              >
+                {styleOptions.map((style) => (
+                  <option key={style.id} value={style.id}>
+                    {style.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-sm">
+              <span className="mb-2 block text-black/55">التاريخ</span>
+              <input
+                type="date"
+                className="input-luxe"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </label>
+
+            <label className="text-sm">
+              <span className="mb-2 block text-black/55">الوقت</span>
+              <select
+                className="input-luxe"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+              >
+                {DEFAULT_TIME_SLOTS.map((slot) => (
+                  <option key={slot} value={slot}>
+                    {getDisplayTime(slot)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-sm">
+              <span className="mb-2 block text-black/55">الحالة</span>
+              <select
+                className="input-luxe"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="pending">تحت الإجراء</option>
+                <option value="confirmed">مؤكد</option>
+                <option value="completed">مكتمل</option>
+                <option value="cancelled">ملغي</option>
+                <option value="archived">مؤرشف</option>
+              </select>
+            </label>
+
+            <label className="text-sm">
+              <span className="mb-2 block text-black/55">الدفع</span>
+              <select
+                className="input-luxe"
+                value={paymentStatus}
+                onChange={(e) => setPaymentStatus(e.target.value)}
+              >
+                <option value="unpaid">غير مدفوع</option>
+                <option value="paid">مدفوع</option>
+              </select>
+            </label>
+
+            <label className="text-sm">
+              <span className="mb-2 block text-black/55">إزالة الرموش القديمة</span>
+              <select
+                className="input-luxe"
+                value={removalOption}
+                onChange={(e) => setRemovalOption(e.target.value)}
+                disabled={!service?.supportsRemoval}
+              >
+                {REMOVAL_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="soft-check self-end">
+              <input
+                type="checkbox"
+                checked={lowerLashes}
+                onChange={(e) => setLowerLashes(e.target.checked)}
+                disabled={!service?.supportsLowerLashes}
+              />
+              <span className="text-sm font-medium">إضافة رموش سفلية</span>
+            </label>
+          </div>
+
+          <div className="mb-5 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+            <label className="text-sm">
+              <span className="mb-2 block text-black/55">ملاحظات الموعد</span>
+              <textarea
+                className="input-luxe min-h-[120px]"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="أي ملاحظات خاصة بالحجز أو العميلة"
+              />
+            </label>
+
+            <div className="rounded-3xl border border-gold/20 bg-[#fffaf3] p-4">
+              <h4 className="mb-3 text-lg font-semibold">ملخص التسعير المباشر</h4>
+
+              <div className="space-y-2 text-sm">
+                <PriceRow label="الخدمة الأساسية" value={totals.basePrice} />
+                <PriceRow label="إزالة الرموش" value={totals.removalPrice} />
+                <PriceRow label="الرموش السفلية" value={totals.lowerLashesPrice} />
+                <div className="my-3 border-t border-gold/20" />
+                <PriceRow label="الإجمالي" value={totals.totalPrice} strong />
+                <PriceRow label="العربون" value={totals.depositAmount} strong />
+                <PriceRow label="المتبقي" value={totals.remainingAmount} />
+                <PriceRow label="المدة" value={`${totals.totalDuration} دقيقة`} />
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-black/5 bg-white px-4 py-3 text-sm text-black/70">
+                <strong className="block mb-1 text-black">الخدمة المختارة:</strong>
+                {serviceLabel}
+                <br />
+                <span className="text-black/55">{styleLabel || "-"}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? "جارٍ الحفظ..." : "حفظ جميع التعديلات"}
+            </button>
+
+            <button
+              type="button"
+              className="btn-gold"
+              onClick={() => onUpdate(booking.id, { status: "confirmed", paymentStatus })}
+              disabled={saving}
+            >
+              حفظ وتأكيد
+            </button>
+          </div>
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
 function Info({ label, value }) {
-  return <div className="rounded-2xl border border-black/5 bg-black/[0.02] px-4 py-3"><p className="text-xs text-black/45">{label}</p><p className="mt-1 font-medium">{value}</p></div>;
+  return (
+    <div className="rounded-2xl border border-black/5 bg-black/[0.02] px-4 py-3">
+      <p className="text-xs text-black/45">{label}</p>
+      <p className="mt-1 font-medium">{value || "-"}</p>
+    </div>
+  );
 }
+
 function StatCard({ label, value }) {
-  return <div className="card-luxe p-5"><p className="text-sm text-black/45">{label}</p><strong className="mt-2 block text-3xl">{value}</strong></div>;
+  return (
+    <div className="card-luxe p-5">
+      <p className="text-sm text-black/45">{label}</p>
+      <strong className="mt-2 block text-3xl">{value}</strong>
+    </div>
+  );
 }
-function FilterButton({ active, onClick, children }) {
-  return <button type="button" className={active ? "btn-primary px-4 py-2 text-sm" : "btn-gold px-4 py-2 text-sm"} onClick={onClick}>{children}</button>;
+
+function PriceRow({ label, value, strong = false }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className={strong ? "font-semibold text-black" : "text-black/60"}>{label}</span>
+      <span className={strong ? "font-semibold text-black" : "text-black"}>
+        {typeof value === "number" ? `${value} SAR` : value}
+      </span>
+    </div>
+  );
 }
