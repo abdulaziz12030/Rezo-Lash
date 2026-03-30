@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AdminCalendar from "@/components/AdminCalendar";
 import {
   SERVICES,
@@ -77,6 +77,9 @@ export default function AdminTable({ bookings }) {
   const [savingId, setSavingId] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
+  const isFetchingRef = useRef(false);
+  const intervalRef = useRef(null);
+
   useEffect(() => {
     setItems(bookings || []);
   }, [bookings]);
@@ -133,17 +136,35 @@ export default function AdminTable({ bookings }) {
     return map;
   }, [items]);
 
-  async function refreshBookings() {
-    setRefreshing(true);
+  async function refreshBookings(options = {}) {
+    const { silent = false } = options;
+
+    if (isFetchingRef.current) return;
+
+    isFetchingRef.current = true;
+    if (!silent) setRefreshing(true);
+
     try {
-      const res = await fetch("/api/admin-bookings", { cache: "no-store" });
+      const res = await fetch("/api/admin-bookings", {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "تعذر تحديث البيانات");
+
       setItems(data.bookings || []);
     } catch (error) {
-      alert(error.message);
+      if (!silent) {
+        alert(error.message);
+      }
     } finally {
-      setRefreshing(false);
+      isFetchingRef.current = false;
+      if (!silent) setRefreshing(false);
     }
   }
 
@@ -160,12 +181,44 @@ export default function AdminTable({ bookings }) {
       if (!response.ok) throw new Error(data.error || "تعذر حفظ التعديلات");
 
       setItems((prev) => prev.map((item) => (item.id === id ? data.booking : item)));
+
+      setTimeout(() => {
+        refreshBookings({ silent: true });
+      }, 400);
     } catch (error) {
       alert(error.message);
     } finally {
       setSavingId("");
     }
   }
+
+  useEffect(() => {
+    refreshBookings({ silent: true });
+
+    const onFocus = () => refreshBookings({ silent: true });
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshBookings({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    intervalRef.current = setInterval(() => {
+      refreshBookings({ silent: true });
+    }, 10000);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -189,7 +242,7 @@ export default function AdminTable({ bookings }) {
 
           <button
             type="button"
-            onClick={refreshBookings}
+            onClick={() => refreshBookings()}
             className="btn-primary"
             disabled={refreshing}
           >
