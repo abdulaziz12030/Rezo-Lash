@@ -1,21 +1,34 @@
+"use client";
+
 import { SERVICES, getServiceLabel } from "@/lib/booking";
 
 export default function Services() {
+  function chooseService(serviceId) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("rezo-selected-service", serviceId);
+    window.dispatchEvent(new CustomEvent("rezo:service-selected", { detail: { serviceId } }));
+    window.location.hash = "booking";
+  }
+
   return (
     <section id="services" className="container-luxe py-14">
       <div className="mb-8 flex items-end justify-between gap-4">
-        <div className="fade-up">
+        <div className="fade-in-right">
           <p className="text-sm uppercase tracking-[0.25em] text-black/45">Services</p>
           <h2 className="section-title mt-2">الخدمات</h2>
         </div>
-        <a href="#booking" className="btn-gold hidden sm:inline-flex">
+        <button type="button" onClick={() => chooseService(SERVICES[0].id)} className="btn-gold hidden sm:inline-flex">
           احجزي الآن
-        </a>
+        </button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {SERVICES.map((service, index) => (
-          <div key={service.id} className="card-luxe service-card overflow-hidden" style={{ animationDelay: `${index * 90}ms` }}>
+          <article
+            key={service.id}
+            className={`card-luxe service-card overflow-hidden ${index % 2 === 0 ? "fade-in-right" : "fade-in-left"}`}
+            style={{ animationDelay: `${index * 90}ms` }}
+          >
             <div className="aspect-[4/5] overflow-hidden bg-[#f5ede5]">
               <img
                 src={service.image}
@@ -36,17 +49,17 @@ export default function Services() {
               <p className="mt-3 text-sm leading-7 text-black/70">{service.descriptionAr}</p>
               <p className="mt-2 text-sm font-medium text-black/60">{service.styleSummary}</p>
 
-              <div className="mt-5 flex items-end justify-between">
+              <div className="mt-5 flex items-end justify-between gap-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-black/40">Price</p>
                   <p className="text-2xl font-semibold">{service.price} SAR</p>
                 </div>
-                <a href={`#booking`} className="btn-primary px-4 py-2 text-sm">
-                  احجزي
-                </a>
+                <button type="button" onClick={() => chooseService(service.id)} className="btn-primary px-4 py-2 text-sm">
+                  اختيار الخدمة
+                </button>
               </div>
             </div>
-          </div>
+          </article>
         ))}
       </div>
     </section>

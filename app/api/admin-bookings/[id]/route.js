@@ -39,15 +39,18 @@ export async function PATCH(request, { params }) {
       );
     }
 
+    const parsedPrice = Number(body.price);
+    const parsedDeposit = Number(body.deposit);
+
     const payload = {
       booking_date: bookingDate,
       booking_time: bookingTime,
       status,
-      service_price: Number.isFinite(body.price)
-        ? body.price
+      service_price: Number.isFinite(parsedPrice)
+        ? parsedPrice
         : (current.service_price ?? 0),
-      deposit_amount: Number.isFinite(body.deposit)
-        ? body.deposit
+      deposit_amount: Number.isFinite(parsedDeposit)
+        ? parsedDeposit
         : (current.deposit_amount ?? 0),
     };
 
@@ -55,8 +58,8 @@ export async function PATCH(request, { params }) {
       payload.service_id = nextService.id;
       payload.service_name = getServiceLabel(nextService);
 
-      if (!Number.isFinite(body.price)) payload.service_price = nextService.price;
-      if (!Number.isFinite(body.deposit)) payload.deposit_amount = nextService.deposit;
+      if (!Number.isFinite(parsedPrice)) payload.service_price = nextService.price;
+      if (!Number.isFinite(parsedDeposit)) payload.deposit_amount = nextService.deposit;
     }
 
     const { data: updated, error: updateError } = await supabase

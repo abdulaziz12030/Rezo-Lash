@@ -1,4 +1,4 @@
-import { buildWhatsAppUrl } from "@/lib/booking";
+import { buildWhatsAppUrl, WHATSAPP_NUMBER } from "@/lib/booking";
 
 const consultationMessage = `مرحبًا Rezo Lash ✨
 أرغب بحجز استشارة مجانية لمعرفة الرسمة المناسبة لرسمة عيني.`;
@@ -17,7 +17,7 @@ export default function Hero() {
           </a>
 
           <a
-            href={buildWhatsAppUrl(consultationMessage)}
+            href={buildWhatsAppUrl(WHATSAPP_NUMBER, consultationMessage)}
             target="_blank"
             rel="noreferrer"
             className="consult-chip absolute left-4 top-4 flex max-w-[260px] items-center gap-3 rounded-full bg-white/92 px-4 py-3 text-right shadow-lg backdrop-blur md:left-8 md:top-8"

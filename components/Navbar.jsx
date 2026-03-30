@@ -22,6 +22,7 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <a href="/admin/login" className="mobile-admin-btn sm:hidden">لوحة التحكم</a>
           <a href="/admin/login" className="hidden rounded-full border border-black/10 px-4 py-2 text-sm hover:bg-black/5 sm:inline-flex">دخول الأدمن</a>
           <a href="#booking" className="btn-primary pulse-soft">احجزي الآن</a>
         </div>
