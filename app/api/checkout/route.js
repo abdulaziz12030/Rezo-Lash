@@ -10,6 +10,7 @@ import {
   normalizePhoneNumber,
   buildAdminWhatsAppUrl,
   buildCustomerReplyTemplate,
+  isPastDateTime,
 } from "@/lib/booking";
 
 export async function POST(request) {
@@ -33,9 +34,19 @@ export async function POST(request) {
       );
     }
 
+    if (isPastDateTime(date, time)) {
+      return NextResponse.json(
+        { error: "لا يمكن حجز موعد سابق." },
+        { status: 400 }
+      );
+    }
+
     const service = getServiceById(serviceId);
     if (!service) {
-      return NextResponse.json({ error: "الخدمة غير موجودة." }, { status: 404 });
+      return NextResponse.json(
+        { error: "الخدمة غير موجودة." },
+        { status: 404 }
+      );
     }
 
     const totals = calculateBookingTotals(service, {
@@ -79,6 +90,11 @@ export async function POST(request) {
       status: "pending",
       payment_status: "unpaid",
       stripe_session_id: null,
+      style: styleLabel,
+      lower_lashes: Boolean(lowerLashes),
+      lash_removal: removalOption === "needs-removal",
+      removal_option: removalOption || "no-removal",
+      notes: null,
     };
 
     const { data: inserted, error: insertError } = await supabase
@@ -89,7 +105,10 @@ export async function POST(request) {
 
     if (insertError) throw insertError;
 
-    const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "";
+    const origin =
+      request.headers.get("origin") ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "";
 
     const adminLink = buildAdminWhatsAppUrl({
       name: fullName,

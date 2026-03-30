@@ -3,11 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   DEFAULT_TIME_SLOTS,
-  DISPLAY_TIME_SLOTS,
   REMOVAL_OPTIONS,
   SERVICES,
   calculateBookingTotals,
-  getDisplayTime,
   getServiceById,
   getServiceLabel,
   getStyleOptions,
@@ -16,8 +14,8 @@ import {
 const POLICY_NOTICE =
   "لا يحق للعميلة المطالبة بالعربون في حال تم إلغاء الموعد أو التأخر أكثر من 20 دقيقة، كما يمكن للعميلة إعادة جدولة الموعد قبل 24 ساعة وبحسب المواعيد المتاحة.";
 
-export default function BookingForm() {
-  const [form, setForm] = useState({
+function getInitialForm() {
+  return {
     fullName: "",
     phone: "",
     date: "",
@@ -26,8 +24,11 @@ export default function BookingForm() {
     removalOption: REMOVAL_OPTIONS[0].id,
     lowerLashes: false,
     time: "",
-  });
+  };
+}
 
+export default function BookingForm() {
+  const [form, setForm] = useState(getInitialForm);
   const [timeSlots, setTimeSlots] = useState(DEFAULT_TIME_SLOTS);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -35,6 +36,7 @@ export default function BookingForm() {
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
   const [slotMessage, setSlotMessage] = useState("");
+  const [selectionNotice, setSelectionNotice] = useState("");
 
   const selectedService = useMemo(() => getServiceById(form.serviceId), [form.serviceId]);
   const styleOptions = useMemo(() => getStyleOptions(form.serviceId), [form.serviceId]);
@@ -59,10 +61,39 @@ export default function BookingForm() {
   }, [selectedService, form.lowerLashes, form.removalOption]);
 
   useEffect(() => {
-    if (!slotMessage) return;
-    const timeout = setTimeout(() => setSlotMessage(""), 2200);
+    if (!slotMessage && !selectionNotice) return;
+    const timeout = setTimeout(() => {
+      setSlotMessage("");
+      setSelectionNotice("");
+    }, 2600);
     return () => clearTimeout(timeout);
-  }, [slotMessage]);
+  }, [slotMessage, selectionNotice]);
+
+  useEffect(() => {
+    function applySelectedService(serviceId) {
+      if (!serviceId || !getServiceById(serviceId)) return;
+      const nextStyles = getStyleOptions(serviceId);
+      setForm((prev) => ({
+        ...prev,
+        serviceId,
+        styleId: nextStyles[0]?.id || "",
+        removalOption: REMOVAL_OPTIONS[0].id,
+        lowerLashes: false,
+      }));
+      const service = getServiceById(serviceId);
+      setSelectionNotice(`تم اختيار خدمة ${service?.nameAr || ""} بنجاح.`);
+    }
+
+    const storedService = typeof window !== "undefined" ? localStorage.getItem("rezo-selected-service") : "";
+    if (storedService) applySelectedService(storedService);
+
+    function handleSelected(event) {
+      applySelectedService(event.detail?.serviceId);
+    }
+
+    window.addEventListener("rezo:service-selected", handleSelected);
+    return () => window.removeEventListener("rezo:service-selected", handleSelected);
+  }, []);
 
   useEffect(() => {
     async function loadAvailability() {
@@ -78,7 +109,7 @@ export default function BookingForm() {
       setWarning("");
 
       try {
-        const response = await fetch(`/api/availability?date=${form.date}`);
+        const response = await fetch(`/api/availability?date=${form.date}`, { cache: "no-store" });
         const data = await response.json();
 
         if (!response.ok) {
@@ -86,7 +117,7 @@ export default function BookingForm() {
         }
 
         setBookedSlots(data.bookedSlots || []);
-        setTimeSlots(DEFAULT_TIME_SLOTS);
+        setTimeSlots(data.slotValues || DEFAULT_TIME_SLOTS);
         setWarning(data.warning || "");
         setForm((prev) => ({
           ...prev,
@@ -110,6 +141,9 @@ export default function BookingForm() {
     setForm((prev) => {
       if (name === "serviceId") {
         const nextStyles = getStyleOptions(value);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("rezo-selected-service", value);
+        }
         return {
           ...prev,
           serviceId: value,
@@ -159,9 +193,12 @@ export default function BookingForm() {
   return (
     <section id="booking" className="container-luxe py-14">
       <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="card-luxe fade-up p-6 md:p-8">
+        <div className="card-luxe fade-in-right p-6 md:p-8">
           <p className="text-sm uppercase tracking-[0.25em] text-black/45">Booking</p>
-          <h2 className="section-title mt-2">احجزي موعدك</h2>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="section-title">احجزي موعدك</h2>
+            {selectedService ? <span className="selected-service-pill">الخدمة المختارة: {selectedService.nameAr}</span> : null}
+          </div>
 
           <form className="mt-8 grid gap-5" onSubmit={submitBooking}>
             <div>
@@ -257,54 +294,58 @@ export default function BookingForm() {
                           setForm((prev) => ({ ...prev, time: slot }));
                         }}
                         className={`slot-btn ${disabled ? "slot-btn-booked" : active ? "slot-btn-active" : "slot-btn-open"}`}
-                        aria-disabled={disabled}
                       >
-                        <span className="block font-medium">{getDisplayTime(slot)}</span>
-                        <span className="mt-1 block text-[11px]">{disabled ? "محجوز" : "متاح"}</span>
+                        <span className="block text-sm font-medium">{slot}</span>
+                        <span className="mt-1 block text-[11px] text-black/50">{disabled ? "غير متاح" : active ? "تم الاختيار" : "متاح"}</span>
                       </button>
                     );
                   })}
                 </div>
               )}
-              {slotMessage ? <p className="mt-3 text-sm font-medium text-rose-600">{slotMessage}</p> : null}
-              <p className="mt-3 text-xs text-black/50">Morning: 9:00 AM و 11:00 AM — Evening: 4:00 PM و 6:00 PM و 8:00 PM</p>
             </div>
 
-            <div className="rounded-2xl bg-[#fff7ef] px-4 py-4 text-sm leading-7 text-black/75">
-              <strong className="mb-2 block text-black">تنبيه قبل تأكيد الحجز</strong>
-              {POLICY_NOTICE}
-            </div>
+            {selectionNotice ? <p className="notice-success">{selectionNotice}</p> : null}
+            {slotMessage ? <p className="notice-warning">{slotMessage}</p> : null}
+            {warning ? <p className="notice-warning">{warning}</p> : null}
+            {error ? <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
 
-            {warning ? <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{warning}</div> : null}
-            {error ? <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
-
-            <button className="btn-primary w-full" disabled={submitting} type="submit">
-              {submitting ? "جاري إرسال طلب الحجز..." : "إرسلي طلب الحجز"}
+            <button type="submit" className="btn-primary w-full" disabled={submitting}>
+              {submitting ? "جاري إرسال الحجز..." : `تأكيد طلب الحجز — عربون ${totals.depositAmount} SAR`}
             </button>
           </form>
         </div>
 
-        <div className="card-luxe fade-up p-6 md:p-8">
+        <aside className="card-luxe fade-in-left p-6 md:p-8">
           <p className="text-sm uppercase tracking-[0.25em] text-black/45">Summary</p>
-          <h3 className="mt-2 text-2xl font-semibold">{getServiceLabel(selectedService) || "Selected Service"}</h3>
+          <h3 className="mt-2 text-2xl font-semibold">ملخص الحجز</h3>
 
           <div className="mt-6 space-y-4 text-sm">
-            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">السعر الأساسي</span><span className="font-medium">{totals.basePrice} SAR</span></div>
-            {selectedService?.supportsRemoval ? <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">الإزالة</span><span className="font-medium">{totals.removalPrice} SAR</span></div> : null}
-            {selectedService?.supportsLowerLashes ? <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">الرموش السفلية</span><span className="font-medium">{totals.lowerLashesPrice} SAR</span></div> : null}
-            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">إجمالي المبلغ</span><span className="font-medium">{totals.totalPrice} SAR</span></div>
-            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">العربون المقترح</span><span className="font-medium">{totals.depositAmount} SAR</span></div>
-            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">المدة الإجمالية</span><span className="font-medium">{totals.totalDuration} min</span></div>
-            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">نوع الرسمة</span><span className="font-medium">{selectedStyle ? `${selectedStyle.label} — ${selectedStyle.description}` : "—"}</span></div>
-            <div className="flex justify-between border-b border-black/5 pb-3"><span className="text-black/55">الوقت</span><span className="font-medium">{form.time ? DISPLAY_TIME_SLOTS[form.time] || form.time : "—"}</span></div>
-            <div className="flex justify-between"><span className="text-black/55">المتبقي بعد العربون</span><span className="font-medium">{totals.remainingAmount} SAR</span></div>
+            <SummaryRow label="الخدمة" value={selectedService?.nameAr} />
+            <SummaryRow label="الرسمة" value={selectedStyle?.label} />
+            <SummaryRow label="السعر الأساسي" value={`${totals.basePrice} SAR`} />
+            {selectedService?.supportsRemoval ? <SummaryRow label="الإزالة" value={`${totals.removalPrice} SAR`} /> : null}
+            {selectedService?.supportsLowerLashes ? <SummaryRow label="الرموش السفلية" value={`${totals.lowerLashesPrice} SAR`} /> : null}
+            <SummaryRow label="المدة المتوقعة" value={`${totals.totalDuration} دقيقة`} />
+            <SummaryRow label="الإجمالي" value={`${totals.totalPrice} SAR`} strong />
+            <SummaryRow label="العربون" value={`${totals.depositAmount} SAR`} strong />
+            <SummaryRow label="المتبقي عند الحضور" value={`${totals.remainingAmount} SAR`} />
           </div>
 
-          <div className="mt-8 rounded-3xl bg-ink px-5 py-5 text-white">
-            <p className="text-sm text-white/75">بعد إرسال الطلب سيتم حفظ الحجز في النظام مباشرة، ويمكن للإدارة مراجعته وتأكيده أو تحديثه من لوحة التحكم.</p>
+          <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-7 text-amber-950">
+            <strong className="mb-2 block">سياسة الحجز</strong>
+            <p>{POLICY_NOTICE}</p>
           </div>
-        </div>
+        </aside>
       </div>
     </section>
+  );
+}
+
+function SummaryRow({ label, value, strong = false }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-black/5 bg-black/[0.02] px-4 py-3">
+      <span className="text-black/50">{label}</span>
+      <span className={strong ? "font-semibold text-lg" : "font-medium"}>{value || "—"}</span>
+    </div>
   );
 }
