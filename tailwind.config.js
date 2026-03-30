@@ -13,7 +13,7 @@ module.exports = {
         ivory: "#F8F3ED",
         blush: "#EAD8D3",
         ink: "#151515",
-        rose: "#C89A95"
+        brandRose: "#C89A95"
       },
       boxShadow: {
         luxe: "0 25px 70px rgba(0,0,0,0.12)"
