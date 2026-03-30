@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import AdminCalendar from "@/components/AdminCalendar";
 import {
   SERVICES,
   DEFAULT_TIME_SLOTS,
@@ -10,7 +11,6 @@ import {
   getStyleOptions,
   getStyleLabel,
   calculateBookingTotals,
-  isArchivedStatus,
   buildCustomerWhatsAppUrl,
   getDisplayTime,
 } from "@/lib/booking";
@@ -21,11 +21,6 @@ const STATUS_LABELS = {
   completed: "مكتمل",
   cancelled: "ملغي",
   archived: "مؤرشف",
-};
-
-const PAYMENT_LABELS = {
-  unpaid: "غير مدفوع",
-  paid: "مدفوع",
 };
 
 function isRecent(createdAt) {
@@ -330,6 +325,19 @@ export default function AdminTable({ bookings }) {
         </div>
       ) : null}
 
+      <AdminCalendar
+        bookings={filtered}
+        onOpenBooking={(bookingId) => {
+          setExpandedId(bookingId);
+          setTimeout(() => {
+            const el = document.getElementById(`booking-card-${bookingId}`);
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }, 50);
+        }}
+      />
+
       <div className="space-y-4">
         {filtered.length === 0 ? (
           <div className="card-luxe p-8 text-center text-black/55">
@@ -418,7 +426,7 @@ function BookingCard({ booking, expanded, onToggle, onUpdate, saving, historyCou
   }
 
   return (
-    <div className="card-luxe overflow-hidden">
+    <div id={`booking-card-${booking.id}`} className="card-luxe overflow-hidden">
       <div className="border-b border-black/5 p-4 md:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
@@ -455,12 +463,15 @@ function BookingCard({ booking, expanded, onToggle, onUpdate, saving, historyCou
               <Info label="الخدمة" value={booking.service} />
               <Info label="الرسمة" value={booking.style || "-"} />
               <Info label="الموعد" value={`${booking.date} — ${getDisplayTime(booking.time)}`} />
-              <Info label="السعر / العربون" value={`${formatCurrency(booking.price)} / ${formatCurrency(booking.deposit)}`} />
+              <Info
+                label="السعر / العربون"
+                value={`${formatCurrency(booking.price)} / ${formatCurrency(booking.deposit)}`}
+              />
             </div>
 
             {(booking.notes || "").trim() ? (
               <div className="mt-3 rounded-2xl border border-black/5 bg-black/[0.03] px-4 py-3 text-sm text-black/70">
-                <strong className="block mb-1 text-black">ملاحظات:</strong>
+                <strong className="mb-1 block text-black">ملاحظات:</strong>
                 {booking.notes}
               </div>
             ) : null}
@@ -468,23 +479,43 @@ function BookingCard({ booking, expanded, onToggle, onUpdate, saving, historyCou
 
           <div className="flex flex-wrap gap-2 xl:max-w-[340px] xl:justify-end">
             {booking.status !== "confirmed" ? (
-              <button type="button" className="btn-primary" onClick={() => quickStatus("confirmed")} disabled={saving}>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => quickStatus("confirmed")}
+                disabled={saving}
+              >
                 تأكيد
               </button>
             ) : null}
 
             {booking.status !== "cancelled" ? (
-              <button type="button" className="btn-gold" onClick={() => quickStatus("cancelled")} disabled={saving}>
+              <button
+                type="button"
+                className="btn-gold"
+                onClick={() => quickStatus("cancelled")}
+                disabled={saving}
+              >
                 إلغاء
               </button>
             ) : null}
 
             {booking.status !== "archived" ? (
-              <button type="button" className="btn-gold" onClick={() => quickStatus("archived")} disabled={saving}>
+              <button
+                type="button"
+                className="btn-gold"
+                onClick={() => quickStatus("archived")}
+                disabled={saving}
+              >
                 أرشفة
               </button>
             ) : (
-              <button type="button" className="btn-gold" onClick={() => quickStatus("confirmed")} disabled={saving}>
+              <button
+                type="button"
+                className="btn-gold"
+                onClick={() => quickStatus("confirmed")}
+                disabled={saving}
+              >
                 استعادة
               </button>
             )}
@@ -649,7 +680,7 @@ function BookingCard({ booking, expanded, onToggle, onUpdate, saving, historyCou
               </div>
 
               <div className="mt-4 rounded-2xl border border-black/5 bg-white px-4 py-3 text-sm text-black/70">
-                <strong className="block mb-1 text-black">الخدمة المختارة:</strong>
+                <strong className="mb-1 block text-black">الخدمة المختارة:</strong>
                 {serviceLabel}
                 <br />
                 <span className="text-black/55">{styleLabel || "-"}</span>
