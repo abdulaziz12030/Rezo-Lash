@@ -170,6 +170,7 @@ export default function AdminTable({ bookings }) {
 
   async function updateBooking(id, patch) {
     setSavingId(id);
+
     try {
       const response = await fetch(`/api/admin-bookings/${id}`, {
         method: "PATCH",
@@ -182,9 +183,7 @@ export default function AdminTable({ bookings }) {
 
       setItems((prev) => prev.map((item) => (item.id === id ? data.booking : item)));
 
-      setTimeout(() => {
-        refreshBookings({ silent: true });
-      }, 400);
+      await refreshBookings({ silent: true });
     } catch (error) {
       alert(error.message);
     } finally {
