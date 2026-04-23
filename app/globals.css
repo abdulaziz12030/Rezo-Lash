@@ -598,3 +598,57 @@ body {
     font-size: 0.74rem;
   }
 }
+
+.admin-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  background: #f8f3ed;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 1.25rem;
+  background: linear-gradient(180deg, #151515 0%, #2b2118 100%);
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+
+.admin-content {
+  min-width: 0;
+  padding: 2rem;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  border-radius: 1rem;
+  padding: 0.9rem 1rem;
+  color: rgba(255,255,255,0.72);
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.admin-nav-item:hover,
+.admin-nav-active {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.admin-logout {
+  width: 100%;
+  border-radius: 1rem;
+  background: rgba(255,255,255,0.1);
+  padding: 0.9rem 1rem;
+  color: white;
+  font-weight: 800;
+}
+
+@media (max-width: 1023px) {
+  .admin-shell { display: block; }
+  .admin-sidebar { position: static; height: auto; border-radius: 0 0 2rem 2rem; }
+  .admin-content { padding: 1rem; }
+}

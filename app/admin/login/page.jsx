@@ -15,18 +15,12 @@ export default function AdminLoginPage() {
     try {
       const response = await fetch("/api/admin-login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ password })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Login failed");
-      }
-
+      if (!response.ok) throw new Error(data.error || "تعذر تسجيل الدخول");
       window.location.href = "/admin";
     } catch (err) {
       setError(err.message);
@@ -36,11 +30,9 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="container-luxe py-24">
+    <main className="container-luxe py-24" dir="rtl">
       <div className="card-luxe mx-auto max-w-md p-8">
-        <p className="text-sm uppercase tracking-[0.25em] text-black/45">
-          Admin Access
-        </p>
+        <p className="text-sm uppercase tracking-[0.25em] text-black/45">Admin Access</p>
         <h1 className="mt-2 text-3xl font-semibold">تسجيل دخول الأدمن</h1>
 
         <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
@@ -51,19 +43,19 @@ export default function AdminLoginPage() {
               className="input-luxe"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter admin password"
+              placeholder="أدخل كلمة المرور"
             />
           </div>
 
-          {error ? (
-            <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
-          ) : null}
+          {error ? <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
 
           <button className="btn-primary w-full" disabled={loading}>
-            {loading ? "Signing in..." : "دخول"}
+            {loading ? "جارٍ الدخول..." : "دخول"}
           </button>
+
+          <a href="/admin/forgot-password" className="block text-center text-sm font-semibold text-black/60">
+            نسيت كلمة المرور؟
+          </a>
         </form>
       </div>
     </main>

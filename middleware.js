@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
+import { isValidSession } from "@/lib/auth";
 
 const COOKIE_NAME = "rezo_admin_session";
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
+  const publicAdminPaths = ["/admin/login", "/admin/forgot-password"];
+
+  if (pathname.startsWith("/admin") && !publicAdminPaths.some((path) => pathname.startsWith(path))) {
     const token = request.cookies.get(COOKIE_NAME)?.value;
 
-    if (!token) {
+    if (!isValidSession(token)) {
       const loginUrl = new URL("/admin/login", request.url);
       return NextResponse.redirect(loginUrl);
     }
@@ -18,5 +21,5 @@ export function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"]
+  matcher: ["/admin/:path*"],
 };

@@ -36,29 +36,48 @@ export default async function AdminPage() {
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
 
   const normalized = (data || []).map(normalizeBooking);
 
   return (
-    <main className="container-luxe py-10 md:py-14">
-      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <main className="admin-shell" dir="rtl">
+      <aside className="admin-sidebar">
         <div>
-          <p className="text-sm uppercase tracking-[0.25em] text-black/45">Admin</p>
-          <h1 className="section-title mt-2">لوحة إدارة مواعيد ريم</h1>
-          <p className="mt-2 max-w-2xl text-black/60">
-            متابعة الحجوزات، فلترة ذكية، تعديل كامل للموعد، وتحديث السعر والعربون بشكل مباشر.
-          </p>
+          <p className="text-xs uppercase tracking-[0.25em] text-white/45">Rezo Lash</p>
+          <h1 className="mt-2 text-2xl font-semibold text-white">لوحة التحكم</h1>
+          <p className="mt-2 text-sm leading-6 text-white/55">إدارة الحجوزات والطلبات بشكل مخصص للابتوب.</p>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <a href="/" className="btn-gold">العودة للموقع</a>
-        </div>
-      </div>
+        <nav className="mt-8 space-y-2">
+          <a className="admin-nav-item admin-nav-active" href="/admin">الحجوزات</a>
+          <a className="admin-nav-item" href="/admin/settings">أوقات المواعيد</a>
+          <a className="admin-nav-item" href="/admin/password">كلمة المرور</a>
+          <a className="admin-nav-item" href="/">عرض الموقع</a>
+        </nav>
 
-      <AdminTable bookings={normalized} />
+        <form action="/api/admin-logout" method="POST" className="mt-auto pt-8">
+          <button className="admin-logout" type="submit">تسجيل خروج</button>
+        </form>
+      </aside>
+
+      <section className="admin-content">
+        <div className="mb-6 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 lg:hidden">
+          لوحة التحكم مصممة للعمل الأفضل على اللابتوب. الصفحات العامة والحجز تبقى مناسبة للجوال.
+        </div>
+
+        <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.25em] text-black/45">Admin</p>
+            <h2 className="section-title mt-2">طلبات وحجوزات Rezo Lash</h2>
+            <p className="mt-2 max-w-2xl text-black/60">
+              جدول صفوف واضح، فلاتر جانبية، وحالة بصرية ملوّنة لكل طلب.
+            </p>
+          </div>
+        </div>
+
+        <AdminTable bookings={normalized} />
+      </section>
     </main>
   );
 }

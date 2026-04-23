@@ -390,6 +390,19 @@ export default function AdminTable({ bookings }) {
         }}
       />
 
+
+
+      <div className="hidden overflow-hidden rounded-3xl border border-black/5 bg-white shadow-luxe lg:block">
+        <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_0.8fr_1.1fr_1.6fr] gap-3 border-b border-black/5 bg-black/[0.03] px-5 py-4 text-sm font-bold text-black/55">
+          <div>العميلة</div><div>الخدمة</div><div>الموعد</div><div>السعر/العربون</div><div>الدفع</div><div>الحالة</div><div>الإجراء</div>
+        </div>
+        <div className="divide-y divide-black/5">
+          {filtered.map((booking) => (
+            <BookingRow key={`row-${booking.id}`} booking={booking} onUpdate={updateBooking} saving={savingId === booking.id} onEdit={() => setExpandedId(booking.id)} />
+          ))}
+        </div>
+      </div>
+
       <div className="space-y-4">
         {filtered.length === 0 ? (
           <div className="card-luxe p-8 text-center text-black/55">
@@ -410,6 +423,27 @@ export default function AdminTable({ bookings }) {
             historyCount={historyByPhone.get(booking.phone || booking.name) || 1}
           />
         ))}
+      </div>
+    </div>
+  );
+}
+
+
+function BookingRow({ booking, onUpdate, saving, onEdit }) {
+  async function quickStatus(nextStatus) { await onUpdate(booking.id, { status: nextStatus }); }
+  return (
+    <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_0.8fr_1.1fr_1.6fr] items-center gap-3 px-5 py-4 text-sm transition hover:bg-[#fffaf3]">
+      <div><div className="font-bold text-black">{booking.name || "-"}</div><div className="mt-1 text-xs text-black/45">{booking.phone || "-"}</div></div>
+      <div className="text-black/70"><div className="font-semibold">{booking.service || "-"}</div><div className="mt-1 text-xs text-black/45">{booking.style || "بدون تحديد"}</div></div>
+      <div className="text-black/70"><div>{booking.date || "-"}</div><div className="mt-1 text-xs text-black/45">{getDisplayTime(booking.time)}</div></div>
+      <div className="text-black/70"><div>{formatCurrency(booking.price)}</div><div className="mt-1 text-xs text-black/45">عربون {formatCurrency(booking.deposit)}</div></div>
+      <div>{(booking.payment_status || "unpaid") === "paid" ? <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">مدفوع</span> : <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">غير مدفوع</span>}</div>
+      <div><span className={getStatusClass(booking.status)}>{STATUS_LABELS[booking.status] || booking.status}</span></div>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className="rounded-xl bg-emerald-100 px-3 py-2 text-xs font-bold text-emerald-800 disabled:opacity-50" onClick={() => quickStatus("confirmed")} disabled={saving}>مؤكد</button>
+        <button type="button" className="rounded-xl bg-amber-100 px-3 py-2 text-xs font-bold text-amber-900 disabled:opacity-50" onClick={() => quickStatus("pending")} disabled={saving}>تحت الإجراء</button>
+        <button type="button" className="rounded-xl bg-red-100 px-3 py-2 text-xs font-bold text-red-800 disabled:opacity-50" onClick={() => quickStatus("cancelled")} disabled={saving}>ملغي</button>
+        <button type="button" className="rounded-xl bg-black px-3 py-2 text-xs font-bold text-white" onClick={onEdit}>تحرير</button>
       </div>
     </div>
   );
