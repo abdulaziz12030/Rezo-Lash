@@ -654,8 +654,9 @@ body {
 }
 
 .admin-dashboard-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  display: block;
+  width: 100%;
+}
   gap: 1.25rem;
   align-items: start;
 }
@@ -667,7 +668,7 @@ body {
 
 .admin-orders-table {
   width: 100%;
-  min-width: 980px;
+  min-width: 1200px;
   border-collapse: separate;
   border-spacing: 0;
   direction: rtl;
