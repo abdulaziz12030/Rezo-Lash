@@ -171,7 +171,6 @@ export default function AdminTable({ bookings }) {
 
   return (
     <div className="admin-dashboard-layout">
-      <aside className="admin-filter-panel">
         <div className="rounded-3xl bg-white p-4 shadow-luxe">
           <p className="text-xs font-bold uppercase tracking-[0.25em] text-black/40">Filters</p>
           <h3 className="mt-2 text-xl font-extrabold text-black">الفرز والاختيارات</h3>
