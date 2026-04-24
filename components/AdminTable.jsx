@@ -1,6 +1,4 @@
-return (
-  <div className="admin-dashboard-layout">
-
+export default function AdminTable({ bookings }) {  <div className="admin-dashboard-layout">
     {/* ===== الفلاتر أعلى الجدول ===== */}
     <div className="rounded-3xl bg-white p-4 shadow-luxe mb-4">
       <div className="flex flex-wrap gap-3 items-center justify-between">
