@@ -41,8 +41,8 @@ async function isValidSession(token) {
 
   const [body, signature] = token.split(".");
   const secret = process.env.ADMIN_SESSION_SECRET || "rezo-lash-dev-secret-change-me";
-
   const expected = await sign(body, secret);
+
   if (signature !== expected) return false;
 
   try {
@@ -56,7 +56,6 @@ async function isValidSession(token) {
       .filter(Boolean);
 
     if (allowedEmails.length === 0) return true;
-
     return allowedEmails.includes(String(payload.email || "").toLowerCase());
   } catch {
     return false;

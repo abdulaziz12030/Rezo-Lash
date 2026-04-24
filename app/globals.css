@@ -652,3 +652,66 @@ body {
   .admin-sidebar { position: static; height: auto; border-radius: 0 0 2rem 2rem; }
   .admin-content { padding: 1rem; }
 }
+
+.admin-dashboard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.admin-filter-panel {
+  position: sticky;
+  top: 1.25rem;
+}
+
+.admin-orders-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: separate;
+  border-spacing: 0;
+  direction: rtl;
+}
+
+.admin-orders-table th {
+  background: rgba(0, 0, 0, 0.035);
+  color: rgba(0, 0, 0, 0.58);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-align: right;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  white-space: nowrap;
+}
+
+.admin-orders-table td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  vertical-align: middle;
+  font-size: 0.92rem;
+}
+
+.action-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.action-pill:hover { transform: translateY(-1px); }
+.action-pill:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+@media (max-width: 1279px) {
+  .admin-dashboard-layout {
+    display: block;
+  }
+  .admin-filter-panel {
+    position: static;
+    margin-bottom: 1rem;
+  }
+}
