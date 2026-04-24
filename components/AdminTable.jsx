@@ -236,7 +236,7 @@ export default function AdminTable({ bookings }) {
             <div className="hidden rounded-2xl bg-black/[0.03] px-4 py-2 text-sm font-bold text-black/60 lg:block">مخصص للابتوب</div>
           </div>
 
-          <div className="hidden overflow-x-auto xl:block">
+          <div className="overflow-x-auto">
             <table className="admin-orders-table">
               <thead>
                 <tr>
