@@ -257,7 +257,7 @@ export default function AdminTable({ bookings }) {
             </table>
           </div>
 
-          <div className="space-y-3 p-4 xl:hidden">
+          <div className="hidden">
             {filtered.map((booking) => (
               <MobileCard key={booking.id} booking={booking} saving={savingId === booking.id} onUpdate={updateBooking} />
             ))}
